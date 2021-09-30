@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.AttendanceSummary
+import io.github.wulkanowy.data.db.entities.sum
 import io.github.wulkanowy.databinding.ItemAttendanceSummaryBinding
 import io.github.wulkanowy.databinding.ScrollableHeaderAttendanceSummaryBinding
 import io.github.wulkanowy.utils.calculatePercentage
@@ -52,7 +53,7 @@ class AttendanceSummaryAdapter @Inject constructor() :
     }
 
     private fun bindItemViewHolder(binding: ItemAttendanceSummaryBinding, position: Int) {
-        val item = if (position == -1) getTotalItem() else items[position]
+        val item = if (position == -1) items.sum() else items[position]
 
         with(binding) {
             attendanceSummaryMonth.text = when (position) {
@@ -73,20 +74,6 @@ class AttendanceSummaryAdapter @Inject constructor() :
             attendanceSummaryLatenessExcused.text = item.latenessExcused.toString()
         }
     }
-
-    private fun getTotalItem() = AttendanceSummary(
-        month = Month.APRIL,
-        presence = items.sumOf { it.presence },
-        absence = items.sumOf { it.absence },
-        absenceExcused = items.sumOf { it.absenceExcused },
-        absenceForSchoolReasons = items.sumOf { it.absenceForSchoolReasons },
-        exemption = items.sumOf { it.exemption },
-        lateness = items.sumOf { it.lateness },
-        latenessExcused = items.sumOf { it.latenessExcused },
-        diaryId = -1,
-        studentId = -1,
-        subjectId = -1
-    )
 
     private fun formatPercentage(percentage: Double): String {
         return if (percentage == 0.0) "0%"

@@ -30,11 +30,12 @@ class AttendanceSummaryRepository @Inject constructor(
         semester: Semester,
         subjectId: Int,
         forceRefresh: Boolean,
+        allowFetch: Boolean = true,
     ) = networkBoundResource(
         mutex = saveFetchResultMutex,
         shouldFetch = {
             val isExpired = refreshHelper.shouldBeRefreshed(getRefreshKey(cacheKey, semester))
-            it.isEmpty() || forceRefresh || isExpired
+            allowFetch && (it.isEmpty() || forceRefresh || isExpired)
         },
         query = { attendanceDb.loadAll(semester.diaryId, semester.studentId, subjectId) },
         fetch = {
