@@ -4,6 +4,7 @@ import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.Status
 import io.github.wulkanowy.data.db.entities.LuckyNumber
 import io.github.wulkanowy.data.db.entities.Student
+import io.github.wulkanowy.data.db.entities.sum
 import io.github.wulkanowy.data.enums.MessageFolder
 import io.github.wulkanowy.data.repositories.AdminMessageRepository
 import io.github.wulkanowy.data.repositories.AttendanceSummaryRepository
@@ -17,21 +18,30 @@ import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.data.repositories.SchoolAnnouncementRepository
 import io.github.wulkanowy.data.repositories.SemesterRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
+import io.github.wulkanowy.data.repositories.SubjectRepository
 import io.github.wulkanowy.data.repositories.TimetableRepository
 import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.utils.calculatePercentage
+import io.github.wulkanowy.utils.collect
+import io.github.wulkanowy.utils.concurrent
 import io.github.wulkanowy.utils.flowWithResourceIn
+import io.github.wulkanowy.utils.map
+import io.github.wulkanowy.utils.merge
 import io.github.wulkanowy.utils.nextOrSameSchoolDay
+import io.github.wulkanowy.utils.toFirstResult
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.LocalDate
@@ -53,6 +63,7 @@ class DashboardPresenter @Inject constructor(
     private val preferencesRepository: PreferencesRepository,
     private val schoolAnnouncementRepository: SchoolAnnouncementRepository,
     private val adminMessageRepository: AdminMessageRepository
+    private val subjectRepository: SubjectRepository,
 ) : BasePresenter<DashboardView>(errorHandler, studentRepository) {
 
     private val dashboardItemLoadedList = mutableListOf<DashboardItem>()
@@ -162,7 +173,7 @@ class DashboardPresenter @Inject constructor(
                 .onSuccess { Timber.i("Loading dashboard account result: Success") }
                 .getOrNull() ?: return@launch
 
-            tileList.forEach {
+            tileList.asFlow().concurrent(8).collect {
                 when (it) {
                     DashboardItem.Type.ACCOUNT -> {
                         updateData(DashboardItem.Account(student), forceRefresh)
@@ -171,6 +182,10 @@ class DashboardPresenter @Inject constructor(
                         loadHorizontalGroup(student, forceRefresh)
                     }
                     DashboardItem.Type.LESSONS -> loadLessons(student, forceRefresh)
+                    DashboardItem.Type.LOW_ATTENDANCE_SUBJECTS -> loadLowAttendanceSubjects(
+                        student,
+                        forceRefresh
+                    )
                     DashboardItem.Type.GRADES -> loadGrades(student, forceRefresh)
                     DashboardItem.Type.HOMEWORK -> loadHomework(student, forceRefresh)
                     DashboardItem.Type.ANNOUNCEMENTS -> {
@@ -416,6 +431,58 @@ class DashboardPresenter @Inject constructor(
         }.launch("dashboard_lessons")
     }
 
+    private fun loadLowAttendanceSubjects(student: Student, forceRefresh: Boolean) {
+        flowWithResourceIn {
+            val semester = semesterRepository.getCurrentSemester(student)
+
+            subjectRepository.getSubjects(student, semester, forceRefresh).map {
+                if (it.status == Status.SUCCESS) {
+                    val subjects = it.data ?: emptyList()
+                    // realId = -1 is an aggregate of all attendances
+                    val totals = subjects.asFlow().filterNot { it.realId == -1 }.concurrent().map { subject ->
+                        val resource = attendanceSummaryRepository.getAttendanceSummary(
+                            student, semester,
+                            subject.realId, forceRefresh, allowFetch = forceRefresh
+                        ).toFirstResult()
+                        val total =
+                            resource.data?.sum() ?: throw resource.error ?: IllegalStateException("No data and no error")
+
+                        subject.name to total
+                    }.merge(preserveOrder = false).filter { it.second.calculatePercentage() != 0.0 }.toList().sortedBy { it.second.calculatePercentage() }
+                    Resource(it.status, totals, it.error)
+                } else {
+                    Resource(it.status, null, it.error)
+                }
+            }
+        }.onEach {
+            when (it.status) {
+                Status.LOADING -> {
+                    Timber.i("Loading low attendance subjects data started")
+                    // This item has internal loading, we DO want to display it's internal loading
+                    // if (forceRefresh) return@onEach
+                    updateData(
+                        DashboardItem.LowAttendanceSubjects(null, isLoading = true),
+                        forceRefresh
+                    )
+                }
+                Status.SUCCESS -> {
+                    Timber.i("Loading low attendance subjects data result: Success")
+                    updateData(
+                        DashboardItem.LowAttendanceSubjects(it.data), forceRefresh
+                    )
+                }
+                Status.ERROR -> {
+                    Timber.i("Loading low attendance subjects data result: An exception occurred")
+                    errorHandler.dispatch(it.error!!)
+                    updateData(
+                        DashboardItem.LowAttendanceSubjects(error = it.error), forceRefresh
+                    )
+                    return@onEach
+                }
+            }
+        }.launch("dashboard_low_attendance_subjects")
+    }
+
     private fun loadHomework(student: Student, forceRefresh: Boolean) {
         flowWithResourceIn {
             val semester = semesterRepository.getCurrentSemester(student)
@@ -634,9 +701,9 @@ class DashboardPresenter @Inject constructor(
 
     private fun updateNormalData() {
         val isItemsLoaded =
-            dashboardItemsToLoad.all { type -> dashboardItemLoadedList.any { it.type == type } }
+            dashboardItemsToLoad.all { type -> type.hasInternalLoading() || dashboardItemLoadedList.any { it.type == type } }
         val isItemsDataLoaded = isItemsLoaded && dashboardItemLoadedList.all {
-            it.isDataLoaded || it.error != null
+            it.type.hasInternalLoading() || it.isDataLoaded || it.error != null
         }
 
         if (isItemsDataLoaded) {
@@ -665,9 +732,9 @@ class DashboardPresenter @Inject constructor(
         }
 
         val isRefreshItemLoaded =
-            dashboardItemsToLoad.all { type -> dashboardItemRefreshLoadedList.any { it.type == type } }
+            dashboardItemsToLoad.all { type -> type.hasInternalLoading() || dashboardItemRefreshLoadedList.any { it.type == type } }
         val isRefreshItemsDataLoaded = isRefreshItemLoaded && dashboardItemRefreshLoadedList.all {
-            it.isDataLoaded || it.error != null
+            it.type.hasInternalLoading() || it.isDataLoaded || it.error != null
         }
 
         if (isRefreshItemsDataLoaded) {
@@ -675,6 +742,10 @@ class DashboardPresenter @Inject constructor(
                 showRefresh(false)
                 showErrorView(false)
                 showContent(true)
+                updateData(dashboardItemLoadedList.toList())
+            }
+        } else if (dashboardItem.type.hasInternalLoading()) {
+            view?.run {
                 updateData(dashboardItemLoadedList.toList())
             }
         }

@@ -560,14 +560,21 @@
     <string name="dashboard_conferences_title">Conferences</string>
     <string name="dashboard_conferences_no_conferences">No upcoming conferences</string>
     <string name="dashboard_conferences_error">An error occurred while loading the conferences</string>
-    <plurals name="dashboard_conference_more">
-        <item quantity="one">%1$d more conference</item>
-        <item quantity="other">%1$d more conferences</item>
-    </plurals>
 
     <string name="dashboard_horizontal_group_error">An error occurred while loading data</string>
     <string name="dashboard_horizontal_group_no_data">None</string>
 
+    <string name="dashboard_low_attendance_subjects_title">Subjects with low attendance</string>
+    <string name="dashboard_low_attendance_subjects_error">An error occurred while loading data</string>
+    <string name="dashboard_low_attendance_subjects_no_data">You have a high attendance in all subjects</string>
+    <plurals name="dashboard_conference_more">
+        <item quantity="one">%1$d more conference</item>
+        <item quantity="other">%1$d more conferences</item>
+    </plurals>
+    <plurals name="dashboard_low_attendance_subjects_more">
+        <item quantity="one">%1$d more subject</item>
+        <item quantity="other">%1$d more subjects</item>
+    </plurals>
 
     <!--Error dialog-->
     <string name="dialog_error_check_update">Check for updates</string>

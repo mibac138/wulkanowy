@@ -1,6 +1,7 @@
 package io.github.wulkanowy.ui.modules.dashboard
 
 import io.github.wulkanowy.data.db.entities.AdminMessage
+import io.github.wulkanowy.data.db.entities.AttendanceSummary
 import io.github.wulkanowy.data.db.entities.Conference
 import io.github.wulkanowy.data.db.entities.Exam
 import io.github.wulkanowy.data.db.entities.Grade
@@ -69,6 +70,15 @@ sealed class DashboardItem(val type: Type) {
         override val isDataLoaded get() = lessons != null
     }
 
+    data class LowAttendanceSubjects(
+        val summariesWithNames: List<Pair<String, AttendanceSummary>>? = null,
+        override val error: Throwable? = null,
+        override val isLoading: Boolean = false
+    ) : DashboardItem(Type.LOW_ATTENDANCE_SUBJECTS) {
+
+        override val isDataLoaded get() = summariesWithNames != null
+    }
+
     data class Homework(
         val homework: List<EntitiesHomework>? = null,
         override val error: Throwable? = null,
@@ -110,12 +120,21 @@ sealed class DashboardItem(val type: Type) {
         ACCOUNT,
         HORIZONTAL_GROUP,
         LESSONS,
+        LOW_ATTENDANCE_SUBJECTS,
         GRADES,
         HOMEWORK,
         ANNOUNCEMENTS,
         EXAMS,
         CONFERENCES,
-        ADS
+        ADS;
+
+        /**
+         * True if the item should load independently and not block all other items when loading
+         */
+        fun hasInternalLoading() = when (this) {
+            LOW_ATTENDANCE_SUBJECTS -> true
+            else -> false
+        }
     }
 
     enum class Tile {
@@ -124,6 +143,7 @@ sealed class DashboardItem(val type: Type) {
         LUCKY_NUMBER,
         MESSAGES,
         ATTENDANCE,
+        LOW_ATTENDANCE_SUBJECTS,
         LESSONS,
         GRADES,
         HOMEWORK,
@@ -140,6 +160,7 @@ fun DashboardItem.Tile.toDashboardItemType() = when (this) {
     DashboardItem.Tile.LUCKY_NUMBER -> DashboardItem.Type.HORIZONTAL_GROUP
     DashboardItem.Tile.MESSAGES -> DashboardItem.Type.HORIZONTAL_GROUP
     DashboardItem.Tile.ATTENDANCE -> DashboardItem.Type.HORIZONTAL_GROUP
+    DashboardItem.Tile.LOW_ATTENDANCE_SUBJECTS -> DashboardItem.Type.LOW_ATTENDANCE_SUBJECTS
     DashboardItem.Tile.LESSONS -> DashboardItem.Type.LESSONS
     DashboardItem.Tile.GRADES -> DashboardItem.Type.GRADES
     DashboardItem.Tile.HOMEWORK -> DashboardItem.Type.HOMEWORK

@@ -115,6 +115,7 @@
         <item>Unread messages</item>
         <item>Attendance</item>
         <item>Lessons</item>
+        <item>Low attendance subjects</item>
         <item>Grades</item>
         <item>Homework</item>
         <item>School announcements</item>
@@ -126,6 +127,7 @@
         <item>MESSAGES</item>
         <item>ATTENDANCE</item>
         <item>LESSONS</item>
+        <item>LOW_ATTENDANCE_SUBJECTS</item>
         <item>GRADES</item>
         <item>HOMEWORK</item>
         <item>ANNOUNCEMENTS</item>

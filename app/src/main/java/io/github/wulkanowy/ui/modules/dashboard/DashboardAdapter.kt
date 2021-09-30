@@ -28,6 +28,8 @@ import io.github.wulkanowy.databinding.ItemDashboardGradesBinding
 import io.github.wulkanowy.databinding.ItemDashboardHomeworkBinding
 import io.github.wulkanowy.databinding.ItemDashboardHorizontalGroupBinding
 import io.github.wulkanowy.databinding.ItemDashboardLessonsBinding
+import io.github.wulkanowy.databinding.ItemDashboardLowAttendanceSubjectsBinding
+import io.github.wulkanowy.utils.calculatePercentage
 import io.github.wulkanowy.utils.createNameInitialsDrawable
 import io.github.wulkanowy.utils.dpToPx
 import io.github.wulkanowy.utils.getThemeAttrColor
@@ -102,6 +104,9 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
             DashboardItem.Type.LESSONS.ordinal -> LessonsViewHolder(
                 ItemDashboardLessonsBinding.inflate(inflater, parent, false)
             )
+            DashboardItem.Type.LOW_ATTENDANCE_SUBJECTS.ordinal -> LowAttendanceSubjectsViewHolder(
+                ItemDashboardLowAttendanceSubjectsBinding.inflate(inflater, parent, false)
+            )
             DashboardItem.Type.HOMEWORK.ordinal -> HomeworkViewHolder(
                 ItemDashboardHomeworkBinding.inflate(inflater, parent, false)
             )
@@ -127,6 +132,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
             is HorizontalGroupViewHolder -> bindHorizontalGroupViewHolder(holder, position)
             is GradesViewHolder -> bindGradesViewHolder(holder, position)
             is LessonsViewHolder -> bindLessonsViewHolder(holder, position)
+            is LowAttendanceSubjectsViewHolder -> bindLowAttendanceSubjectsHolder(holder, position)
             is HomeworkViewHolder -> bindHomeworkViewHolder(holder, position)
             is AnnouncementsViewHolder -> bindAnnouncementsViewHolder(holder, position)
             is ExamsViewHolder -> bindExamsViewHolder(holder, position)
@@ -561,6 +567,44 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         }
     }
 
+    private fun bindLowAttendanceSubjectsHolder(
+        holder: LowAttendanceSubjectsViewHolder,
+        position: Int
+    ) {
+        val item = items[position] as DashboardItem.LowAttendanceSubjects
+        val list = item.summariesWithNames
+            ?.filter { it.second.calculatePercentage() <= ATTENDANCE_FIRST_WARNING_THRESHOLD }
+            .orEmpty()
+        val error = item.error
+        val isLoading = item.isLoading
+        val context = holder.binding.root.context
+        val adapter = holder.adapter.apply {
+            this.items = list.take(MAX_VISIBLE_LIST_ITEMS)
+        }
+
+        with(holder.binding) {
+            dashboardLowAttendanceSubjectsItemEmpty.isVisible =
+                list.isEmpty() && error == null && !isLoading
+            dashboardLowAttendanceSubjectsItemError.isVisible = error != null && !isLoading
+            dashboardLowAttendanceSubjectsItemProgress.isVisible =
+                isLoading && error == null && list.isEmpty()
+            dashboardLowAttendanceSubjectsItemDivider.isVisible = list.size > MAX_VISIBLE_LIST_ITEMS
+            dashboardLowAttendanceSubjectsItemMore.isVisible = list.size > MAX_VISIBLE_LIST_ITEMS
+            dashboardLowAttendanceSubjectsItemMore.text = context.resources.getQuantityString(
+                R.plurals.dashboard_low_attendance_subjects_more,
+                list.size - MAX_VISIBLE_LIST_ITEMS,
+                list.size - MAX_VISIBLE_LIST_ITEMS
+            )
+
+            with(dashboardLowAttendanceSubjectsItemRecycler) {
+                this.adapter = adapter
+                layoutManager = LinearLayoutManager(context)
+                isVisible = list.isNotEmpty() && error == null
+                suppressLayout(true)
+            }
+        }
+    }
+
     private fun bindHomeworkViewHolder(homeworkViewHolder: HomeworkViewHolder, position: Int) {
         val item = items[position] as DashboardItem.Homework
         val homeworkList = item.homework.orEmpty()
@@ -750,6 +794,12 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
     class LessonsViewHolder(val binding: ItemDashboardLessonsBinding) :
         RecyclerView.ViewHolder(binding.root)
 
+    class LowAttendanceSubjectsViewHolder(val binding: ItemDashboardLowAttendanceSubjectsBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        val adapter by lazy { DashboardLowAttendanceSubjectsAdapter() }
+    }
+
     class HomeworkViewHolder(val binding: ItemDashboardHomeworkBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -793,14 +843,14 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
             newList[newItemPosition].type == oldList[oldItemPosition].type
     }
 
-    private companion object {
+    companion object {
 
         private const val LESSON_SUMMARY_VISIBILITY_THRESHOLD = 2
 
         private const val MAX_VISIBLE_LIST_ITEMS = 5
 
-        private const val ATTENDANCE_FIRST_WARNING_THRESHOLD = 75.0
+        const val ATTENDANCE_FIRST_WARNING_THRESHOLD = 75.0
 
-        private const val ATTENDANCE_SECOND_WARNING_THRESHOLD = 50.0
+        const val ATTENDANCE_SECOND_WARNING_THRESHOLD = 50.0
     }
 }
