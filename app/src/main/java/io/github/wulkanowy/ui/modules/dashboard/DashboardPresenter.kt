@@ -62,7 +62,7 @@ class DashboardPresenter @Inject constructor(
     private val conferenceRepository: ConferenceRepository,
     private val preferencesRepository: PreferencesRepository,
     private val schoolAnnouncementRepository: SchoolAnnouncementRepository,
-    private val adminMessageRepository: AdminMessageRepository
+    private val adminMessageRepository: AdminMessageRepository,
     private val subjectRepository: SubjectRepository,
 ) : BasePresenter<DashboardView>(errorHandler, studentRepository) {
 
