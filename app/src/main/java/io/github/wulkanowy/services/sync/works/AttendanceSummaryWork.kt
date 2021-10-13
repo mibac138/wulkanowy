@@ -4,8 +4,7 @@ import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.repositories.AttendanceSummaryRepository
 import io.github.wulkanowy.data.repositories.SubjectRepository
-import io.github.wulkanowy.utils.collect
-import io.github.wulkanowy.utils.concurrent
+import io.github.wulkanowy.utils.toFirstResult
 import io.github.wulkanowy.utils.waitForResult
 import javax.inject.Inject
 
@@ -16,8 +15,14 @@ class AttendanceSummaryWork @Inject constructor(
 
     override suspend fun doWork(student: Student, semester: Semester) {
         attendanceSummaryRepository.getAttendanceSummary(student, semester, -1, true).waitForResult()
-        subjectRepository.getSubjects(student, semester).concurrent().collect {
-            attendanceSummaryRepository.getAttendanceSummary(student, semester, -1, true).waitForResult()
+        val (_status, data, error) = subjectRepository.getSubjects(student, semester).toFirstResult()
+        if (error != null) {
+            throw error
+        }
+        data!!.forEach {
+            attendanceSummaryRepository.getAttendanceSummary(student, semester, it.realId, true).toFirstResult().let {
+                if (it.error != null) throw it.error
+            }
         }
     }
 }
