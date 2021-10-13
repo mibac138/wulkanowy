@@ -186,7 +186,7 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_optional_arithmetic_average
         )
 
-    var lasSyncDate: LocalDateTime
+    var lastSyncDate: LocalDateTime
         get() = getLong(R.string.pref_key_last_sync_date, R.string.pref_default_last_sync_date)
             .toLocalDateTime()
         set(value) = sharedPref.edit().putLong("last_sync_date", value.toTimestamp()).apply()

@@ -72,7 +72,7 @@ class SyncWorker @AssistedInject constructor(
             }
             exceptions.isNotEmpty() -> Result.retry()
             else -> {
-                preferencesRepository.lasSyncDate = LocalDateTime.now()
+                preferencesRepository.lastSyncDate = LocalDateTime.now()
                 Result.success()
             }
         }

@@ -76,7 +76,7 @@ class SyncPresenter @Inject constructor(
     }
 
     private fun setSyncDateInView() {
-        val lastSyncDate = preferencesRepository.lasSyncDate
+        val lastSyncDate = preferencesRepository.lastSyncDate
 
         if (lastSyncDate.year == 1970) return
 
