@@ -78,8 +78,9 @@ class LuckyNumberHistoryFragment :
 
     override fun clearData() {
         with(luckyNumberHistoryAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

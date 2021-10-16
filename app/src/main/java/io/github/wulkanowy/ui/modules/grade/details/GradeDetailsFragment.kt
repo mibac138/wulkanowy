@@ -93,8 +93,9 @@ class GradeDetailsFragment :
 
     override fun clearView() {
         with(gradeDetailsAdapter) {
+            val size = itemCount
             setDataItems(mutableListOf())
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

@@ -80,8 +80,9 @@ class HomeworkFragment : BaseFragment<FragmentHomeworkBinding>(R.layout.fragment
 
     override fun clearData() {
         with(homeworkAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

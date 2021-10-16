@@ -29,6 +29,7 @@ import io.github.wulkanowy.ui.widgets.DividerItemDecoration
 import io.github.wulkanowy.utils.SchoolDaysValidator
 import io.github.wulkanowy.utils.dpToPx
 import io.github.wulkanowy.utils.getThemeAttrColor
+import io.github.wulkanowy.utils.isExcusableOrNotExcused
 import io.github.wulkanowy.utils.schoolYearStart
 import io.github.wulkanowy.utils.toLocalDateTime
 import io.github.wulkanowy.utils.toTimestamp
@@ -160,8 +161,9 @@ class AttendanceFragment : BaseFragment<FragmentAttendanceBinding>(R.layout.frag
 
     override fun clearData() {
         with(attendanceAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 
@@ -289,9 +291,13 @@ class AttendanceFragment : BaseFragment<FragmentAttendanceBinding>(R.layout.frag
     }
 
     override fun showExcuseCheckboxes(show: Boolean) {
-        attendanceAdapter.apply {
+        with(attendanceAdapter) {
             excuseActionMode = show
-            notifyDataSetChanged()
+            for ((pos, item) in items.withIndex()) {
+                if (item.isExcusableOrNotExcused) {
+                    notifyItemChanged(pos)
+                }
+            }
         }
     }
 

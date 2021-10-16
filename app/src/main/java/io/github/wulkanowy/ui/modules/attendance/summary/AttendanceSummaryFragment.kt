@@ -91,8 +91,9 @@ class AttendanceSummaryFragment :
 
     override fun clearView() {
         with(attendanceSummaryAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

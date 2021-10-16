@@ -79,8 +79,9 @@ class NoteFragment : BaseFragment<FragmentNoteBinding>(R.layout.fragment_note), 
 
     override fun clearData() {
         with(noteAdapter) {
+            val size = items.size
             items = mutableListOf()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

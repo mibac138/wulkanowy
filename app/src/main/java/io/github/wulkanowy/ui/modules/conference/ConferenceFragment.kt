@@ -72,8 +72,9 @@ class ConferenceFragment : BaseFragment<FragmentConferenceBinding>(R.layout.frag
 
     override fun clearData() {
         with(conferencesAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

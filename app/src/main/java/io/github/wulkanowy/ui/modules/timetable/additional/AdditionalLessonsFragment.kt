@@ -85,8 +85,9 @@ class AdditionalLessonsFragment :
 
     override fun clearData() {
         with(additionalLessonsAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

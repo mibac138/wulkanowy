@@ -69,8 +69,9 @@ class SchoolAnnouncementFragment :
 
     override fun clearData() {
         with(schoolAnnouncementAdapter) {
-            items = listOf()
-            notifyDataSetChanged()
+            val size = items.size
+            items = emptyList()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

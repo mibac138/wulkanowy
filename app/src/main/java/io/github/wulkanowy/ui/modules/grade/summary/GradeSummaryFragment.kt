@@ -80,8 +80,9 @@ class GradeSummaryFragment :
 
     override fun clearView() {
         with(gradeSummaryAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 

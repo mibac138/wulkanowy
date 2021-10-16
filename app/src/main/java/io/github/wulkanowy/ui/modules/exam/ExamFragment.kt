@@ -85,8 +85,9 @@ class ExamFragment : BaseFragment<FragmentExamBinding>(R.layout.fragment_exam), 
 
     override fun clearData() {
         with(examAdapter) {
+            val size = items.size
             items = emptyList()
-            notifyDataSetChanged()
+            notifyItemRangeRemoved(0, size)
         }
     }
 
