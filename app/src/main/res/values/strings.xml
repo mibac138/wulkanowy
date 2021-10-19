@@ -566,7 +566,7 @@
 
     <string name="dashboard_low_attendance_subjects_title">Subjects with low attendance</string>
     <string name="dashboard_low_attendance_subjects_error">An error occurred while loading data</string>
-    <string name="dashboard_low_attendance_subjects_no_data">You have a high attendance in all subjects</string>
+    <string name="dashboard_low_attendance_subjects_no_data">No subjects with a low attendance</string>
     <plurals name="dashboard_conference_more">
         <item quantity="one">%1$d more conference</item>
         <item quantity="other">%1$d more conferences</item>

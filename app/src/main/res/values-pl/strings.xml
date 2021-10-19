@@ -705,5 +705,5 @@
     <string name="error_feature_not_available">Funkcja niedostępna. Zaloguj się w trybie innym niż Mobilne API</string>
     <string name="dashboard_low_attendance_subjects_title">Przedmioty z niską frekwencją</string>
     <string name="dashboard_low_attendance_subjects_error">Wystąpił błąd podczas ładowania danych</string>
-    <string name="dashboard_low_attendance_subjects_no_data">Posiadasz wysoką frekwencję z każdego przedmiotu</string>
+    <string name="dashboard_low_attendance_subjects_no_data">Brak przedmiotów z niską frekwencją</string>
 </resources>
