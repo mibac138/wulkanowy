@@ -435,25 +435,38 @@ class DashboardPresenter @Inject constructor(
         flowWithResourceIn {
             val semester = semesterRepository.getCurrentSemester(student)
 
-            subjectRepository.getSubjects(student, semester, forceRefresh).map {
-                if (it.status == Status.SUCCESS) {
-                    val subjects = it.data ?: emptyList()
-                    // realId = -1 is an aggregate of all attendances
-                    val totals = subjects.asFlow().filterNot { it.realId == -1 }.concurrent().map { subject ->
-                        val resource = attendanceSummaryRepository.getAttendanceSummary(
-                            student, semester,
-                            subject.realId, forceRefresh, allowFetch = forceRefresh
-                        ).toFirstResult()
-                        val total =
-                            resource.data?.sum() ?: throw resource.error ?: IllegalStateException("No data and no error")
+            subjectRepository.getSubjects(student, semester, forceRefresh)
+                .map { subjectsResource ->
+                    if (subjectsResource.status == Status.SUCCESS) {
+                        val subjects = subjectsResource.data ?: emptyList()
+                        // realId = -1 is an aggregate of all attendances
+                        val totals = subjects.asFlow()
+                            .filterNot { it.realId == -1 }
+                            .concurrent()
+                            .map { subject ->
+                                val resource = attendanceSummaryRepository.getAttendanceSummary(
+                                    student = student,
+                                    semester = semester,
+                                    subjectId = subject.realId,
+                                    forceRefresh = forceRefresh,
+                                    allowFetch = forceRefresh
+                                ).toFirstResult()
 
-                        subject.name to total
-                    }.merge(preserveOrder = false).filter { it.second.calculatePercentage() != 0.0 }.toList().sortedBy { it.second.calculatePercentage() }
-                    Resource(it.status, totals, it.error)
-                } else {
-                    Resource(it.status, null, it.error)
+                                val total = resource.data?.sum() ?: throw resource.error
+                                    ?: IllegalStateException("No data and no error")
+
+                                subject.name to total
+                            }
+                            .merge(preserveOrder = false)
+                            .filter { it.second.calculatePercentage() != 0.0 }
+                            .toList()
+                            .sortedBy { it.second.calculatePercentage() }
+
+                        Resource(subjectsResource.status, totals, subjectsResource.error)
+                    } else {
+                        Resource(subjectsResource.status, null, subjectsResource.error)
+                    }
                 }
-            }
         }.onEach {
             when (it.status) {
                 Status.LOADING -> {
