@@ -46,10 +46,6 @@ import kotlin.concurrent.timer
 
 class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    init {
-        setHasStableIds(true)
-    }
-
     private var lessonsTimer: Timer? = null
 
     var onAccountTileClickListener: (Student) -> Unit = {}
@@ -87,9 +83,6 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
 
         diffResult.dispatchUpdatesTo(this)
     }
-
-    // We can do this because every type has always at most one associated view
-    override fun getItemId(position: Int) = items[position].type.ordinal.toLong()
 
     override fun getItemCount() = items.size
 
