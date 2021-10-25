@@ -84,4 +84,7 @@ data class Student(
 
     @ColumnInfo(name = "avatar_color")
     var avatarColor = 0L
+
+    @ColumnInfo(name = "new_password_storage")
+    var newPasswordStorage: Boolean = false
 }

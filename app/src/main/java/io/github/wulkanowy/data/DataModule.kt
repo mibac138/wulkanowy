@@ -16,6 +16,8 @@ import dagger.hilt.components.SingletonComponent
 import io.github.wulkanowy.data.api.AdminMessageService
 import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.SharedPrefProvider
+import io.github.wulkanowy.data.db.dao.PasswordDao
+import io.github.wulkanowy.data.db.dao.PasswordDaoImpl
 import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AppInfo
@@ -113,6 +115,11 @@ internal class DataModule {
     @Provides
     fun provideFlowSharedPref(sharedPreferences: SharedPreferences) =
         FlowSharedPreferences(sharedPreferences)
+
+    @Singleton
+    @Provides
+    fun providePasswordDao(@ApplicationContext context: Context): PasswordDao =
+        PasswordDaoImpl(context)
 
     @Singleton
     @Provides

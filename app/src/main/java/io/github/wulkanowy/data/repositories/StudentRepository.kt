@@ -1,9 +1,8 @@
 package io.github.wulkanowy.data.repositories
 
-import android.content.Context
 import androidx.room.withTransaction
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.wulkanowy.data.db.AppDatabase
+import io.github.wulkanowy.data.db.dao.PasswordDao
 import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.dao.StudentDao
 import io.github.wulkanowy.data.db.entities.Student
@@ -14,21 +13,19 @@ import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AppInfo
 import io.github.wulkanowy.utils.DispatchersProvider
-import io.github.wulkanowy.utils.security.decrypt
-import io.github.wulkanowy.utils.security.encrypt
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class StudentRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val dispatchers: DispatchersProvider,
     private val studentDb: StudentDao,
     private val semesterDb: SemesterDao,
+    private val passwordDao: PasswordDao,
     private val sdk: Sdk,
     private val appInfo: AppInfo,
-    private val appDatabase: AppDatabase
+    private val appDatabase: AppDatabase,
 ) {
 
     suspend fun isStudentSaved() = getSavedStudents(false).isNotEmpty()
@@ -63,62 +60,49 @@ class StudentRepository @Inject constructor(
 
     suspend fun getSavedStudents(decryptPass: Boolean = true) =
         studentDb.loadStudentsWithSemesters()
-            .map {
-                it.apply {
-                    if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
-                        student.password = withContext(dispatchers.io) {
-                            decrypt(student.password)
-                        }
-                    }
-                }
+            .onEach { (student, _semesters) ->
+                loadPassword(student, decryptPass)
             }
 
     suspend fun getSavedStudentById(id: Long, decryptPass: Boolean = true) =
         studentDb.loadStudentWithSemestersById(id)?.apply {
-            if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
-                student.password = withContext(dispatchers.io) {
-                    decrypt(student.password)
-                }
-            }
+            loadPassword(student, decryptPass)
         }
 
     suspend fun getStudentById(id: Long, decryptPass: Boolean = true): Student {
         val student = studentDb.loadById(id) ?: throw NoCurrentStudentException()
+        loadPassword(student, decryptPass)
 
-        if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
-            student.password = withContext(dispatchers.io) {
-                decrypt(student.password)
-            }
-        }
         return student
     }
 
     suspend fun getCurrentStudent(decryptPass: Boolean = true): Student {
         val student = studentDb.loadCurrent() ?: throw NoCurrentStudentException()
+        loadPassword(student, decryptPass)
 
-        if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
-            student.password = withContext(dispatchers.io) {
-                decrypt(student.password)
-            }
-        }
         return student
     }
 
     suspend fun saveStudents(studentsWithSemesters: List<StudentWithSemesters>) {
         val semesters = studentsWithSemesters.flatMap { it.semesters }
         val students = studentsWithSemesters.map { it.student }
-            .map {
-                it.apply {
-                    if (Sdk.Mode.valueOf(it.loginMode) != Sdk.Mode.API) {
-                        password = withContext(dispatchers.io) {
-                            encrypt(password, context)
-                        }
+            .map { student ->
+                if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
+                    student.copy().also {
+                        it.nick = student.nick
+                        it.avatarColor = student.avatarColor
+                        it.newPasswordStorage = student.newPasswordStorage
+                        passwordDao.savePassword(it)
                     }
-                }
+                } else student
             }
             .mapIndexed { index, student ->
                 if (index == 0) {
-                    student.copy(isCurrent = true).apply { avatarColor = student.avatarColor }
+                    student.copy(isCurrent = true).apply {
+                        nick = student.nick
+                        avatarColor = student.avatarColor
+                        newPasswordStorage = student.newPasswordStorage
+                    }
                 } else student
             }
 
@@ -140,4 +124,12 @@ class StudentRepository @Inject constructor(
 
     suspend fun isOneUniqueStudent() = getSavedStudents(false)
         .distinctBy { it.student.studentName }.size == 1
+
+    private suspend fun loadPassword(student: Student, decryptPass: Boolean = false) {
+        if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
+            withContext(dispatchers.io) {
+                passwordDao.loadPassword(student)
+            }
+        }
+    }
 }

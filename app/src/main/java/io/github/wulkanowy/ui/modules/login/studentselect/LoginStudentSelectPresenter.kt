@@ -1,5 +1,6 @@
 package io.github.wulkanowy.ui.modules.login.studentselect
 
+import android.os.Build
 import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
@@ -90,6 +91,14 @@ class LoginStudentSelectPresenter @Inject constructor(
     }
 
     private fun registerStudents(studentsWithSemesters: List<StudentWithSemesters>) {
+        studentsWithSemesters.onEach { (student, semesters) ->
+            // Android versions older than marshmallow do not have the required APIs
+            // for our usage of androidx.security
+            // Also, only use new password storage starting with the 2022/2023 school year
+            // to be on the safe side in case something goes wrong
+            val newSchoolYearOrTestBunny = semesters.any { it.schoolYear >= 2022 } || Math.random() <= 0.05
+            student.newPasswordStorage = newSchoolYearOrTestBunny && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        }
         resourceFlow { studentRepository.saveStudents(studentsWithSemesters) }
             .logResourceStatus("registration")
             .onEach {
