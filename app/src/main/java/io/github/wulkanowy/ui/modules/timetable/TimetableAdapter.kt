@@ -41,7 +41,7 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
 
     private var showTimers: Boolean = false
 
-    private val timers = mutableMapOf<Int, Timer?>()
+    private val timers = mutableMapOf<Long, Timer>()
 
     private val items = mutableListOf<Timetable>()
 
@@ -77,8 +77,8 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         Timber.d("Timetable timers (${timers.size}) cleared")
         with(timers) {
             forEach { (_, timer) ->
-                timer?.cancel()
-                timer?.purge()
+                timer.cancel()
+                timer.purge()
             }
             clear()
         }
@@ -109,7 +109,7 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val lesson = items[position]
 
         when (holder) {
-            is ItemViewHolder -> bindNormalView(holder.binding, lesson, position)
+            is ItemViewHolder -> bindNormalView(holder.binding, lesson)
             is SmallItemViewHolder -> bindSmallView(holder.binding, lesson)
         }
     }
@@ -130,7 +130,7 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         }
     }
 
-    private fun bindNormalView(binding: ItemTimetableBinding, lesson: Timetable, position: Int) {
+    private fun bindNormalView(binding: ItemTimetableBinding, lesson: Timetable) {
         with(binding) {
             timetableItemNumber.text = lesson.number.toString()
             timetableItemSubject.text = lesson.subject
@@ -144,16 +144,17 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
             bindNormalDescription(binding, lesson)
             bindNormalColors(binding, lesson)
 
-            timers[position]?.let {
-                it.cancel()
-                it.purge()
+            timers.remove(lesson.id)?.apply {
+                cancel()
+                purge()
             }
-            timers[position] = null
 
             if (lesson.isStudentPlan && showTimers) {
-                timers[position] = timer(period = 1000) {
+                timers[lesson.id] = timer(period = 1000) {
                     Handler(Looper.getMainLooper()).post {
-                        updateTimeLeft(binding, lesson, position)
+                        val pos = items.indexOfFirst { it.id == lesson.id }
+                        if (pos == -1) cancel()
+                        updateTimeLeft(binding, lesson, pos)
                     }
                 }
             } else {
@@ -169,10 +170,8 @@ class TimetableAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
     private fun getPreviousLesson(position: Int): LocalDateTime? {
         return items.filter { it.isStudentPlan }
             .getOrNull(position - 1 - items.filterIndexed { i, item -> i < position && !item.isStudentPlan }.size)
-            ?.let {
-                if (!it.canceled && it.isStudentPlan) it.end
-                else null
-            }
+            ?.takeIf { !it.canceled && it.isStudentPlan }
+            ?.end
     }
 
     private fun updateTimeLeft(binding: ItemTimetableBinding, lesson: Timetable, position: Int) {
