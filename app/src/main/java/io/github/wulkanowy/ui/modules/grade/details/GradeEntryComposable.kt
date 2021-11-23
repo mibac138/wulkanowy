@@ -6,13 +6,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
@@ -20,12 +19,11 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.material.composethemeadapter.MdcTheme
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Grade
@@ -74,11 +75,23 @@ fun quantityStringResource(@PluralsRes id: Int, quantity: Int, vararg formatArgs
 }
 
 @Composable
+fun GradeDetailsComposable(data: GradeSubject, gradeColorTheme: GradeColorTheme) {
+    val isRefreshing = rememberSaveable {
+        mutableStateOf(false)
+    }
+    SwipeRefresh(state = rememberSwipeRefreshState(isRefreshing = isRefreshing.value), onRefresh = {
+        isRefreshing.value = true
+    }) {
+        GradeContainerComposable(data = data, gradeColorTheme = gradeColorTheme)
+    }
+}
+
+@Composable
 @OptIn(ExperimentalAnimationApi::class)
 fun GradeContainerComposable(
-    modifier: Modifier = Modifier,
     data: GradeSubject,
     gradeColorTheme: GradeColorTheme,
+    modifier: Modifier = Modifier,
     onGradeClickListener: ((Grade) -> Unit)? = null,
 ) {
     var expanded by remember {
@@ -93,16 +106,19 @@ fun GradeContainerComposable(
             if (expanded) {
                 Column(
                     Modifier
-                        .wrapContentHeight()
                         .padding(top = 4.dp)
                 ) {
                     for (grade in data.grades) {
                         if (onGradeClickListener != null) {
-                            Box(Modifier.clickable { onGradeClickListener(grade) } ) {
-                                GradeEntryComposable(grade = grade, gradeColorTheme = gradeColorTheme)
+                            Box(Modifier.clickable { onGradeClickListener(grade) }) {
+                                GradeEntryComposable(
+                                    grade = grade,
+                                    gradeColorTheme = gradeColorTheme
+                                )
                             }
+                        } else {
+                            GradeEntryComposable(grade = grade, gradeColorTheme = gradeColorTheme)
                         }
-                        GradeEntryComposable(grade = grade, gradeColorTheme = gradeColorTheme)
                     }
                 }
             }
@@ -128,13 +144,8 @@ fun GradeHeaderComposable(
     data: GradeSubject,
     modifier: Modifier = Modifier
 ) {
-    val clicked = remember {
-        mutableStateOf(false)
-    }
-    val unread = remember {
-        mutableStateOf(data.grades.count { !it.isRead })
-    }
-    Row(modifier.clickable { unread.value = 0 }, verticalAlignment = Alignment.CenterVertically) {
+    val unread = remember { data.grades.count { !it.isRead } }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Column(
             Modifier
                 .weight(1f)
@@ -169,65 +180,27 @@ fun GradeHeaderComposable(
                 )
             }
         }
-        AnimatedVisibility(visible = unread.value > 0) {
-                Box(
-                    Modifier
-                        .height(20.dp)
-                        .wrapContentWidth()
-                        .background(
-                            color = MaterialTheme.colors.primary,
-                            shape = RoundedCornerShape(12.dp)
-                        ), Alignment.Center
-                ) {
-                    Text(
-                        text = unread.value.toString(),
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        style = TextStyle(color = MaterialTheme.colors.onPrimary),
-                        fontSize = 14.sp,
-                    )
-                }
+        AnimatedVisibility(visible = unread > 0) {
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .wrapContentWidth()
+                    .widthIn(min = 20.dp)
+                    .background(
+                        color = MaterialTheme.colors.primary,
+                        shape = RoundedCornerShape(12.dp)
+                    ), Alignment.Center
+            ) {
+                Text(
+                    text = "255",
+                    modifier = Modifier.padding(horizontal = 5.dp),
+                    style = TextStyle(color = MaterialTheme.colors.onPrimary),
+                    fontSize = 14.sp,
+                )
+            }
         }
-//        if (unread > 0) {
-//            Box(
-//                Modifier
-//                    .height(20.dp)
-//                    .wrapContentWidth()
-//                    .background(
-//                        color = MaterialTheme.colors.primary,
-//                        shape = RoundedCornerShape(12.dp)
-//                    ),
-//                Alignment.Center
-//            ) {
-//                Text(
-//                    text = unread.toString(),
-//                    modifier = Modifier.padding(horizontal = 4.dp),
-//                    style = TextStyle(color = MaterialTheme.colors.onPrimary),
-//                    fontSize = 14.sp,
-//                )
-//            }
-//        }
     }
 }
-
-/*
-<TextView
-    android:id="@+id/gradeHeaderNote"
-    android:layout_width="wrap_content"
-    android:layout_height="20dp"
-    android:layout_marginEnd="12dp"
-    android:background="@drawable/background_header_note"
-    android:gravity="center"
-    android:minWidth="20dp"
-    android:paddingLeft="5dp"
-    android:paddingRight="5dp"
-    android:textColor="?colorOnPrimary"
-    android:textSize="14sp"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintTop_toTopOf="parent"
-    tools:text="255" />
-
- */
 
 @Composable
 fun GradeEntryComposable(
@@ -274,7 +247,7 @@ fun GradeEntryComposable(
 private fun Container() {
     AppTheme {
         Surface {
-            GradeContainerComposable(
+            GradeDetailsComposable(
                 GradeSubject(
                     "Biologia",
                     5.0,
