@@ -49,4 +49,9 @@ abstract class BaseFragment<VB : ViewBinding>(@LayoutRes layoutId: Int) : Fragme
     override fun showChangePasswordSnackbar(redirectUrl: String) {
         (activity as? BaseActivity<*, *>)?.showChangePasswordSnackbar(redirectUrl)
     }
+
+//    override fun onDestroyView() {
+//        super.onDestroyView()
+//        messageContainer = null
+//    }
 }

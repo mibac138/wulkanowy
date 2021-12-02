@@ -1,5 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.db.dao.AttendanceDao
 import io.github.wulkanowy.data.db.dao.AttendanceSummaryDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -10,6 +11,7 @@ import io.github.wulkanowy.utils.getRefreshKey
 import io.github.wulkanowy.utils.init
 import io.github.wulkanowy.utils.networkBoundResource
 import io.github.wulkanowy.utils.uniqueSubtract
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class AttendanceSummaryRepository @Inject constructor(
     private val attendanceDb: AttendanceSummaryDao,
+    private val attDb2: AttendanceDao,
     private val sdk: Sdk,
     private val refreshHelper: AutoRefreshHelper,
 ) {
@@ -48,4 +51,8 @@ class AttendanceSummaryRepository @Inject constructor(
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester))
         }
     )
+
+    fun speculateCurrentAttendanceSummary(student: Student, semester: Semester, subjectId: Int, forceRefresh: Boolean) {
+        getAttendanceSummary(student, semester, subjectId, forceRefresh)
+    }
 }

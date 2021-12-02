@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,17 +38,35 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.material.composethemeadapter.MdcTheme
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.wulkanowy.R
+import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.db.entities.Grade
 import io.github.wulkanowy.data.db.entities.GradeSummary
-import io.github.wulkanowy.ui.modules.grade.GradeColorTheme
+import io.github.wulkanowy.data.enums.GradeColorTheme
+import io.github.wulkanowy.data.repositories.GradeRepository
+import io.github.wulkanowy.data.repositories.SemesterRepository
+import io.github.wulkanowy.data.repositories.StudentRepository
+import io.github.wulkanowy.ui.modules.grade.GradeAverageProvider
 import io.github.wulkanowy.ui.modules.grade.GradeSubject
 import io.github.wulkanowy.utils.toFormattedString
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import javax.inject.Inject
 
 /**
  * Load a quantity string resource.
@@ -74,15 +95,65 @@ fun quantityStringResource(@PluralsRes id: Int, quantity: Int, vararg formatArgs
     return context.resources.getQuantityString(id, quantity, *formatArgs)
 }
 
-@Composable
-fun GradeDetailsComposable(data: GradeSubject, gradeColorTheme: GradeColorTheme) {
-    val isRefreshing = rememberSaveable {
-        mutableStateOf(false)
+//@HiltViewModel
+class DetailsVM /*@Inject*/ constructor(
+//    private val studentRepository: StudentRepository,
+//    private val semesterRepository: SemesterRepository,
+//    private val gradeRepository: GradeRepository,
+//    private val averageProvider: GradeAverageProvider,
+) : ViewModel() {
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean>
+        get() = _isRefreshing.asStateFlow()
+
+//    private lateinit var provider: Flow<Resource<List<GradeSubject>>>
+//
+//    val subjects: StateFlow<List<GradeSubject>>
+//        get() = provider.map { it.data ?: emptyList() }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun refresh() {
+        // This doesn't handle multiple 'refreshing' tasks, don't use this
+        viewModelScope.launch {
+            _isRefreshing.emit(true)
+//            val student = studentRepository.getCurrentStudent()
+//            val semester = semesterRepository.getCurrentSemester(student)
+//            averageProvider.getGradesDetailsWithAverage(student, semester.semesterId, false)
+            delay(2000)
+            _isRefreshing.emit(false)
+        }
     }
-    SwipeRefresh(state = rememberSwipeRefreshState(isRefreshing = isRefreshing.value), onRefresh = {
-        isRefreshing.value = true
-    }) {
-        GradeContainerComposable(data = data, gradeColorTheme = gradeColorTheme)
+}
+
+@Composable
+fun GradeDetailsComposable(datas: List<GradeSubject>, gradeColorTheme: GradeColorTheme) {
+    val viewModel: DetailsVM = viewModel()
+//    val isRefreshing = rememberSaveable {
+//        mutableStateOf(false)
+//    }
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+//    val subjects by viewModel.subjects.collectAsState()
+    SwipeRefresh(
+        state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+        onRefresh = {
+            viewModel.refresh()
+        }) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            datas.firstOrNull()?.let {
+                GradeContainerComposable(
+                    data = it,
+                    gradeColorTheme = gradeColorTheme,
+                    onGradeClickListener = { grade -> grade.isRead = true }
+                )
+            }
+            for (data in datas.drop(1)) {
+                Divider()
+                GradeContainerComposable(
+                    data = data,
+                    gradeColorTheme = gradeColorTheme,
+                    onGradeClickListener = { grade -> grade.isRead = true }
+                )
+            }
+        }
     }
 }
 
@@ -91,50 +162,41 @@ fun GradeDetailsComposable(data: GradeSubject, gradeColorTheme: GradeColorTheme)
 fun GradeContainerComposable(
     data: GradeSubject,
     gradeColorTheme: GradeColorTheme,
-    modifier: Modifier = Modifier,
     onGradeClickListener: ((Grade) -> Unit)? = null,
 ) {
     var expanded by remember {
         mutableStateOf(false)
     }
-    Column(modifier) {
-        Divider()
-        Box(Modifier.clickable { expanded = !expanded }) {
+    Column {
+        Box(
+            Modifier
+                .clickable { expanded = !expanded }
+                .padding(start = 16.dp, end = 20.dp, top = 10.dp, bottom = 10.dp)) {
             GradeHeaderComposable(data = data)
         }
         AnimatedContent(targetState = expanded) { expanded ->
             if (expanded) {
-                Column(
-                    Modifier
-                        .padding(top = 4.dp)
-                ) {
+                Column(modifier = Modifier.padding(top = 4.dp)) {
                     for (grade in data.grades) {
                         if (onGradeClickListener != null) {
                             Box(Modifier.clickable { onGradeClickListener(grade) }) {
                                 GradeEntryComposable(
                                     grade = grade,
-                                    gradeColorTheme = gradeColorTheme
+                                    gradeColorTheme = gradeColorTheme,
+                                    modifier = Modifier.padding(start = 16.dp, end = 20.dp, top = 7.dp, bottom = 7.dp)
                                 )
                             }
                         } else {
-                            GradeEntryComposable(grade = grade, gradeColorTheme = gradeColorTheme)
+                            GradeEntryComposable(
+                                grade = grade,
+                                gradeColorTheme = gradeColorTheme,
+                                modifier = Modifier.padding(start = 16.dp, end = 20.dp, top = 7.dp, bottom = 7.dp)
+                            )
                         }
                     }
                 }
             }
         }
-//        Column(
-//            Modifier
-//                .wrapContentHeight()
-//                .padding(top = 4.dp)
-//                .animateContentSize()
-//        ) {
-//            AnimatedVisibility(visible = expanded, enter = fadeIn().plus(), exit = fadeOut()) {
-//                for (grade in data.grades) {
-//                    GradeEntryComposable(grade, gradeColorTheme)
-//                }
-//            }
-//        }
     }
 }
 
@@ -192,7 +254,7 @@ fun GradeHeaderComposable(
                     ), Alignment.Center
             ) {
                 Text(
-                    text = "255",
+                    text = "$unread",
                     modifier = Modifier.padding(horizontal = 5.dp),
                     style = TextStyle(color = MaterialTheme.colors.onPrimary),
                     fontSize = 14.sp,
@@ -247,7 +309,7 @@ fun GradeEntryComposable(
 private fun Container() {
     AppTheme {
         Surface {
-            GradeDetailsComposable(
+            GradeDetailsComposable(listOf(
                 GradeSubject(
                     "Biologia",
                     5.0,
@@ -266,13 +328,40 @@ private fun Container() {
                             "",
                             "sprawdzian",
                             "3,00",
-                            1.0,
+                            3.0,
                             LocalDate.now(),
                             ""
                         )
                     ),
                     true
                 ),
+                GradeSubject(
+                    "Fizyka",
+                    4.0,
+                    "100",
+                    GradeSummary(0, 0, 0, "Fizyka", "4", "4", "50", "50", "50", 4.0),
+                    listOf(
+                        Grade(
+                            0,
+                            0,
+                            "Fizyka",
+                            "4",
+                            "4".toDoubleOrNull() ?: 0.0,
+                            0.0,
+                            "",
+                            "000000",
+                            "",
+                            "kartkówka",
+                            "1,00",
+                            1.0,
+                            LocalDate.now(),
+                            ""
+                        ).also {
+                            it.isRead = false
+                        }
+                    ),
+                    true
+                )),
                 GradeColorTheme.MATERIAL
             )
         }

@@ -15,8 +15,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.wulkanowy.data.db.entities.Grade
-import io.github.wulkanowy.ui.modules.grade.GradeColorTheme
-import io.github.wulkanowy.ui.modules.grade.getBackgroundColor
+import io.github.wulkanowy.data.enums.GradeColorTheme
+import io.github.wulkanowy.utils.getBackgroundColor
 import java.time.LocalDate
 
 @Composable
