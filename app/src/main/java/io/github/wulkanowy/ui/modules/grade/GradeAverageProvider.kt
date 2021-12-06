@@ -61,7 +61,7 @@ class GradeAverageProvider @Inject constructor(
                     averageMode = ALL_YEAR
                 )
             }
-        }.distinctUntilChanged()
+        }
 
     private fun calculateCombinedAverage(
         student: Student,

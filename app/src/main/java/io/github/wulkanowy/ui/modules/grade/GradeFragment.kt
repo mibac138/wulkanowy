@@ -16,6 +16,7 @@ import io.github.wulkanowy.databinding.FragmentGradeBinding
 import io.github.wulkanowy.ui.base.BaseFragment
 import io.github.wulkanowy.ui.base.BaseFragmentPagerAdapter
 import io.github.wulkanowy.ui.modules.grade.details.GradeDetailsFragment
+import io.github.wulkanowy.ui.modules.grade.details.GradeDetailsFragmentCompose
 import io.github.wulkanowy.ui.modules.grade.statistics.GradeStatisticsFragment
 import io.github.wulkanowy.ui.modules.grade.summary.GradeSummaryFragment
 import io.github.wulkanowy.ui.modules.main.MainView
@@ -87,7 +88,7 @@ class GradeFragment : BaseFragment<FragmentGradeBinding>(R.layout.fragment_grade
             }
             itemFactory = {
                 when (it) {
-                    0 -> GradeDetailsFragment.newInstance()
+                    0 -> GradeDetailsFragmentCompose()
                     1 -> GradeSummaryFragment.newInstance()
                     2 -> GradeStatisticsFragment.newInstance()
                     else -> throw IllegalStateException()

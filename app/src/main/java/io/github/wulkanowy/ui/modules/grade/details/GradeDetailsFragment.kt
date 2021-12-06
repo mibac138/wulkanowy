@@ -1,6 +1,7 @@
 package io.github.wulkanowy.ui.modules.grade.details
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -8,7 +9,11 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
+import android.view.ViewGroup
+import androidx.compose.ui.platform.ComposeView
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.composethemeadapter.MdcTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Grade
@@ -21,6 +26,35 @@ import io.github.wulkanowy.ui.modules.grade.GradeView
 import io.github.wulkanowy.ui.modules.main.MainActivity
 import io.github.wulkanowy.utils.getThemeAttrColor
 import javax.inject.Inject
+
+
+@AndroidEntryPoint
+class GradeDetailsFragmentCompose : Fragment(), GradeView.GradeChildView {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ) = ComposeView(requireContext()).apply {
+        setContent {
+            MdcTheme {
+                GradeDetailsComposable(gradeColorTheme = GradeColorTheme.MATERIAL)
+            }
+        }
+    }
+
+    private var semester: Int = 0
+
+    override fun onParentChangeSemester() {
+    }
+
+    override fun onParentLoadData(semesterId: Int, forceRefresh: Boolean) {
+        semester = semesterId
+        (parentFragment as? GradeFragment)?.onChildFragmentLoaded(semesterId)
+    }
+
+    override fun onParentReselected() {
+    }
+}
 
 @AndroidEntryPoint
 class GradeDetailsFragment :

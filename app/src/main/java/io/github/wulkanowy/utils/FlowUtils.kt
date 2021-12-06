@@ -2,6 +2,7 @@ package io.github.wulkanowy.utils
 
 import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.Status
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -94,3 +96,9 @@ suspend fun <T> Flow<Resource<T>>.toFirstResult() = filter { it.status != Status
 
 suspend fun <T> Flow<Resource<T>>.waitForResult() =
     takeWhile { it.status == Status.LOADING }.collect()
+
+@OptIn(ExperimentalCoroutinesApi::class)
+suspend fun <T> Flow<Resource<T>>.takeUntilFirstResultInclusive() = transformWhile {
+    emit(it)
+    it.status == Status.LOADING
+}
