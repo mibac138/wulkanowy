@@ -18,6 +18,7 @@ import io.github.wulkanowy.utils.toTimestamp
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -52,11 +53,28 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
+    val gradeAverageModeFlow: Flow<GradeAverageMode>
+        get() = gradeAverageModePref.asFlow().map {
+            GradeAverageMode.getByValue(it)
+        }.onEach { println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$it") }
+
+    private val gradeAverageModePref: Preference<String>
+        get() = getStringFlow(
+            R.string.pref_key_grade_average_mode,
+            R.string.pref_default_grade_average_mode
+        )
+
     val gradeAverageForceCalc: Boolean
         get() = getBoolean(
             R.string.pref_key_grade_average_force_calc,
             R.bool.pref_default_grade_average_force_calc
         )
+
+    val gradeAverageForceCalcFlow: Flow<Boolean>
+        get() = gradeAverageForceCalcPref.asFlow()
+
+    private val gradeAverageForceCalcPref: Preference<Boolean>
+    get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_grade_average_force_calc), context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc))
 
     val gradeExpandMode: GradeExpandMode
         get() = GradeExpandMode.getByValue(
@@ -89,13 +107,10 @@ class PreferencesRepository @Inject constructor(
             .map { GradeColorTheme.getByValue(it) }
 
     private val gradeColorThemePreference: Preference<String>
-        get() {
-            val default =
-                context.resources.getString(R.string.pref_default_grade_color_scheme)
-            val prefKey = context.getString(R.string.pref_key_grade_color_scheme)
-
-            return flowSharedPref.getString(prefKey, default)
-        }
+        get() = getStringFlow(
+            R.string.pref_key_grade_color_scheme,
+            R.string.pref_default_grade_color_scheme
+        )
 
     val appLanguageKey = context.getString(R.string.pref_key_app_language)
     val appLanguage
@@ -154,11 +169,18 @@ class PreferencesRepository @Inject constructor(
             R.string.pref_default_grade_modifier_plus
         ).toDouble()
 
+    val gradePlusModifierFlow: Flow<Double>
+        get() = getStringFlow(R.string.pref_key_grade_modifier_plus, R.string.pref_default_grade_modifier_plus).asFlow().map { it.toDouble() }
+
     val gradeMinusModifier: Double
         get() = getString(
             R.string.pref_key_grade_modifier_minus,
             R.string.pref_default_grade_modifier_minus
         ).toDouble()
+
+
+    val gradeMinusModifierFlow: Flow<Double>
+        get() = getStringFlow(R.string.pref_key_grade_modifier_minus, R.string.pref_default_grade_modifier_minus).asFlow().map { it.toDouble() }
 
     val fillMessageContent: Boolean
         get() = getBoolean(
@@ -210,6 +232,9 @@ class PreferencesRepository @Inject constructor(
             R.string.pref_key_optional_arithmetic_average,
             R.bool.pref_default_optional_arithmetic_average
         )
+
+    val isOptionalArithmeticAverageFlow: Flow<Boolean>
+    get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_optional_arithmetic_average), context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)).asFlow()
 
     var lasSyncDate: LocalDateTime
         get() = getLong(R.string.pref_key_last_sync_date, R.string.pref_default_last_sync_date)
@@ -287,6 +312,9 @@ class PreferencesRepository @Inject constructor(
 
     private fun getLong(id: String, default: Int) =
         sharedPref.getLong(id, context.resources.getString(default).toLong())
+
+    private fun getStringFlow(id: Int, default: Int) =
+        flowSharedPref.getString(context.getString(id), context.getString(default))
 
     private fun getString(id: Int, default: Int) = getString(context.getString(id), default)
 

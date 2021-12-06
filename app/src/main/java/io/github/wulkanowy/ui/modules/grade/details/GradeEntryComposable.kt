@@ -89,8 +89,9 @@ class DetailsVM @Inject constructor(
         get() = _isRefreshing.asStateFlow()
 
     private val _colorTheme = preferencesRepository.gradeColorThemeFlow
-    val colorTheme: StateFlow<GradeColorTheme>
-        get() = _colorTheme.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GradeColorTheme.VULCAN)
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), replay = 1)
+    val colorTheme: SharedFlow<GradeColorTheme>
+        get() = _colorTheme
 
     private val stateTrigger = FlowTrigger()
     private val _subjects = flowWithTrigger(stateTrigger) { manuallyTriggered ->
@@ -103,7 +104,7 @@ class DetailsVM @Inject constructor(
                 forceRefresh = manuallyTriggered
             )
         )
-    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000))
+    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
     val subjects: SharedFlow<Resource<List<GradeSubject>>>
         get() = _subjects
 
