@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
@@ -41,32 +42,36 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.material.composethemeadapter.MdcTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.wulkanowy.R
+import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.db.entities.Grade
 import io.github.wulkanowy.data.db.entities.GradeSummary
 import io.github.wulkanowy.data.enums.GradeColorTheme
 import io.github.wulkanowy.data.repositories.GradeRepository
+import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.data.repositories.SemesterRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.ui.modules.grade.GradeAverageProvider
 import io.github.wulkanowy.ui.modules.grade.GradeSubject
 import io.github.wulkanowy.utils.FlowTrigger
+import io.github.wulkanowy.utils.ResourceViewComposable
 import io.github.wulkanowy.utils.collectAsState2
 import io.github.wulkanowy.utils.flowWithTrigger
 import io.github.wulkanowy.utils.quantityStringResource
 import io.github.wulkanowy.utils.toFormattedString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -77,10 +82,15 @@ class DetailsVM @Inject constructor(
     private val semesterRepository: SemesterRepository,
     private val gradeRepository: GradeRepository,
     private val averageProvider: GradeAverageProvider,
+    private val preferencesRepository: PreferencesRepository,
 ) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean>
         get() = _isRefreshing.asStateFlow()
+
+    private val _colorTheme = preferencesRepository.gradeColorThemeFlow
+    val colorTheme: StateFlow<GradeColorTheme>
+        get() = _colorTheme.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GradeColorTheme.VULCAN)
 
     private val stateTrigger = FlowTrigger()
     private val _subjects = flowWithTrigger(stateTrigger) { manuallyTriggered ->
@@ -93,8 +103,8 @@ class DetailsVM @Inject constructor(
                 forceRefresh = manuallyTriggered
             )
         )
-    }.map { it.data }.filterNotNull().shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000))
-    val subjects: Flow<List<GradeSubject>>
+    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000))
+    val subjects: SharedFlow<Resource<List<GradeSubject>>>
         get() = _subjects
 
     fun refresh() {
@@ -102,6 +112,12 @@ class DetailsVM @Inject constructor(
             _isRefreshing.value = true
             stateTrigger.triggerUntilCompletion()
             _isRefreshing.value = false
+        }
+    }
+
+    fun retry() {
+        viewModelScope.launch {
+            stateTrigger.trigger()
         }
     }
 
@@ -115,23 +131,30 @@ class DetailsVM @Inject constructor(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GradeDetailsComposable(gradeColorTheme: GradeColorTheme) {
+fun GradeDetailsComposable() {
     val viewModel: DetailsVM = viewModel()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val subjects by viewModel.subjects.collectAsState2(emptyList())
-    SwipeRefresh(
-        state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
-        onRefresh = { viewModel.refresh() }
-    ) {
-        LazyColumn {
-            items(subjects, { it.summary.id }) {
-                GradeContainerComposable(
-                    data = it,
-                    gradeColorTheme = gradeColorTheme,
-                    onGradeClickListener = { grade -> viewModel.markAsRead(grade) },
-                    modifier = Modifier.animateItemPlacement()
-                )
-                Divider(modifier = Modifier.animateItemPlacement())
+    val subjectsRes by viewModel.subjects.collectAsState2(Resource.loading())
+    val colorTheme by viewModel.colorTheme.collectAsState()
+    ResourceViewComposable(resource = subjectsRes, onRetry = { viewModel.retry() }) { subjects ->
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
+            onRefresh = { viewModel.refresh() },
+            indicator = { s, trigger ->
+                SwipeRefreshIndicator(s, trigger, contentColor = MaterialTheme.colors.primary)
+            }
+        ) {
+            val state = rememberLazyListState()
+            LazyColumn(state = state) {
+                itemsIndexed(subjects, { _, item -> item.summary.id }) { _, item ->
+                    GradeContainerComposable(
+                        data = item,
+                        gradeColorTheme = colorTheme,
+                        onGradeClickListener = { grade -> viewModel.markAsRead(grade) },
+                        modifier = Modifier.animateItemPlacement()
+                    )
+                    Divider(modifier = Modifier.animateItemPlacement())
+                }
             }
         }
     }
@@ -238,6 +261,7 @@ fun GradeHeaderComposable(
                         .height(20.dp)
                         .wrapContentWidth()
                         .widthIn(min = 20.dp)
+                        .padding(end = 2.dp)
                         .background(
                             color = MaterialTheme.colors.primary,
                             shape = RoundedCornerShape(12.dp)
@@ -245,7 +269,7 @@ fun GradeHeaderComposable(
                 ) {
                     Text(
                         text = "$it",
-                        modifier = Modifier.padding(horizontal = 5.dp),
+                        modifier = Modifier.padding(start = 6.dp, end = 6.dp),
                         style = TextStyle(color = MaterialTheme.colors.onPrimary),
                         fontSize = 14.sp,
                     )

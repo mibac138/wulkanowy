@@ -1,16 +1,40 @@
 package io.github.wulkanowy.utils
 
+import android.content.res.Resources
 import androidx.annotation.PluralsRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Icon
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ProduceStateScope
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.wulkanowy.R
 import io.github.wulkanowy.data.Resource
+import io.github.wulkanowy.data.Status
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -26,6 +50,68 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.experimental.ExperimentalTypeInference
+
+@Composable
+@ReadOnlyComposable
+private fun resources(): Resources {
+    LocalConfiguration.current
+    return LocalContext.current.resources
+}
+
+
+@Composable
+fun <T> ResourceViewComposable(
+    resource: Resource<T>,
+    onRetry: () -> Unit,
+    success: @Composable (T) -> Unit
+) {
+    if (resource.status == Status.SUCCESS || (resource.status == Status.LOADING && resource.data != null)) {
+        success(resource.data!!)
+    }
+    if (resource.status == Status.LOADING) {
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    }
+    if (resource.status == Status.ERROR) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_error),
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(bottom = 20.dp)
+                    .size(100.dp)
+            )
+            Text(
+                text = resources().getString(resource.error!!),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(8.dp),
+                fontSize = 20.sp
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .padding(top = 16.dp)
+            ) {
+                OutlinedButton(onClick = { /*TODO*/ }) {
+                    Text(
+                        text = stringResource(id = R.string.all_details).uppercase(),
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Button(onClick = onRetry) {
+                    Text(
+                        text = stringResource(id = R.string.all_retry).uppercase(),
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        }
+    }
+}
 
 class FlowTrigger(private val onRefresh: Channel<() -> Unit>) {
     fun trigger() {
@@ -62,9 +148,9 @@ fun <T> flowWithTrigger(
                 val onDoneCallback = trigger.receive()
                 triggerInProgress.data = true
                 // Only subscribe for a single real (not loading) value
-                emitAll(flow {
+                emit(flow {
                     block(true)
-                }.takeUntilFirstResultInclusive())
+                }.toFirstResult())
                 onDoneCallback()
                 triggerInProgress.data = false
             }

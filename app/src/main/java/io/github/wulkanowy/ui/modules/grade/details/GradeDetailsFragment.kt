@@ -37,18 +37,15 @@ class GradeDetailsFragmentCompose : Fragment(), GradeView.GradeChildView {
     ) = ComposeView(requireContext()).apply {
         setContent {
             MdcTheme {
-                GradeDetailsComposable(gradeColorTheme = GradeColorTheme.MATERIAL)
+                GradeDetailsComposable()
             }
         }
     }
-
-    private var semester: Int = 0
 
     override fun onParentChangeSemester() {
     }
 
     override fun onParentLoadData(semesterId: Int, forceRefresh: Boolean) {
-        semester = semesterId
         (parentFragment as? GradeFragment)?.onChildFragmentLoaded(semesterId)
     }
 

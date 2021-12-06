@@ -32,7 +32,7 @@ fun GradeComposable(grade: Grade, colorTheme: GradeColorTheme) {
             Text(
                 text = grade.entry,
                 color = Color.White,
-                fontSize = 24.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Medium
             )
         }

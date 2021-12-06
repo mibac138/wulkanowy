@@ -96,9 +96,3 @@ suspend fun <T> Flow<Resource<T>>.toFirstResult() = filter { it.status != Status
 
 suspend fun <T> Flow<Resource<T>>.waitForResult() =
     takeWhile { it.status == Status.LOADING }.collect()
-
-@OptIn(ExperimentalCoroutinesApi::class)
-suspend fun <T> Flow<Resource<T>>.takeUntilFirstResultInclusive() = transformWhile {
-    emit(it)
-    it.status == Status.LOADING
-}

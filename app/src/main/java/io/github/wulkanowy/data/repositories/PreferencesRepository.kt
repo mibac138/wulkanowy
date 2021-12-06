@@ -84,6 +84,19 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
+    val gradeColorThemeFlow: Flow<GradeColorTheme>
+        get() = gradeColorThemePreference.asFlow()
+            .map { GradeColorTheme.getByValue(it) }
+
+    private val gradeColorThemePreference: Preference<String>
+        get() {
+            val default =
+                context.resources.getString(R.string.pref_default_grade_color_scheme)
+            val prefKey = context.getString(R.string.pref_key_grade_color_scheme)
+
+            return flowSharedPref.getString(prefKey, default)
+        }
+
     val appLanguageKey = context.getString(R.string.pref_key_app_language)
     val appLanguage
         get() = getString(appLanguageKey, R.string.pref_default_app_language)
