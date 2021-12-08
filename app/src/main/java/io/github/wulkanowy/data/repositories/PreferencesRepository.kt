@@ -5,14 +5,17 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.fredporciuncula.flow.preferences.Preference
+import com.fredporciuncula.flow.preferences.Serializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.wulkanowy.R
+import io.github.wulkanowy.data.enums.AttendanceInTimetable
 import io.github.wulkanowy.data.enums.GradeColorTheme
 import io.github.wulkanowy.data.enums.GradeExpandMode
 import io.github.wulkanowy.data.enums.GradeSortingMode
 import io.github.wulkanowy.sdk.toLocalDate
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.grade.GradeAverageMode
+import io.github.wulkanowy.utils.getObject
 import io.github.wulkanowy.utils.toLocalDateTime
 import io.github.wulkanowy.utils.toTimestamp
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,7 +59,7 @@ class PreferencesRepository @Inject constructor(
     val gradeAverageModeFlow: Flow<GradeAverageMode>
         get() = gradeAverageModePref.asFlow().map {
             GradeAverageMode.getByValue(it)
-        }.onEach { println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!$it") }
+        }
 
     private val gradeAverageModePref: Preference<String>
         get() = getStringFlow(
@@ -74,7 +77,10 @@ class PreferencesRepository @Inject constructor(
         get() = gradeAverageForceCalcPref.asFlow()
 
     private val gradeAverageForceCalcPref: Preference<Boolean>
-    get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_grade_average_force_calc), context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc))
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_grade_average_force_calc),
+            context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc)
+        )
 
     val gradeExpandMode: GradeExpandMode
         get() = GradeExpandMode.getByValue(
@@ -170,7 +176,10 @@ class PreferencesRepository @Inject constructor(
         ).toDouble()
 
     val gradePlusModifierFlow: Flow<Double>
-        get() = getStringFlow(R.string.pref_key_grade_modifier_plus, R.string.pref_default_grade_modifier_plus).asFlow().map { it.toDouble() }
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_plus,
+            R.string.pref_default_grade_modifier_plus
+        ).asFlow().map { it.toDouble() }
 
     val gradeMinusModifier: Double
         get() = getString(
@@ -178,14 +187,25 @@ class PreferencesRepository @Inject constructor(
             R.string.pref_default_grade_modifier_minus
         ).toDouble()
 
-
     val gradeMinusModifierFlow: Flow<Double>
-        get() = getStringFlow(R.string.pref_key_grade_modifier_minus, R.string.pref_default_grade_modifier_minus).asFlow().map { it.toDouble() }
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_minus,
+            R.string.pref_default_grade_modifier_minus
+        ).asFlow().map { it.toDouble() }
 
     val fillMessageContent: Boolean
         get() = getBoolean(
             R.string.pref_key_fill_message_content,
             R.bool.pref_default_fill_message_content
+        )
+
+    val showGroupsInPlanFlow: Flow<Boolean>
+        get() = showGroupsInPlanPref.asFlow()
+
+    private val showGroupsInPlanPref: Preference<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_timetable_show_groups),
+            context.resources.getBoolean(R.bool.pref_default_timetable_show_groups)
         )
 
     val showGroupsInPlan: Boolean
@@ -208,11 +228,27 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
+    val showTimetableTimersFlow: Flow<Boolean>
+        get() = showTimetableTimersPref.asFlow()
+
+    private val showTimetableTimersPref: Preference<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_timetable_show_timers),
+            context.resources.getBoolean(R.bool.pref_default_timetable_show_timers)
+        )
+
     val showTimetableTimers: Boolean
         get() = getBoolean(
             R.string.pref_key_timetable_show_timers,
             R.bool.pref_default_timetable_show_timers
         )
+
+
+    val showAttendanceInTimetableFlow: Flow<AttendanceInTimetable>
+        get() = showAttendanceInTimetablePref.asFlow()
+
+    private val showAttendanceInTimetablePref: Preference<AttendanceInTimetable>
+        get() = flowSharedPref.getObject(context.getString(R.string.pref_key_timetable_show_attendance), context.getString(R.string.pref_default_timetable_show_attendance), AttendanceInTimetable.Serializer)
 
     var isHomeworkFullscreen: Boolean
         get() = getBoolean(
@@ -222,10 +258,13 @@ class PreferencesRepository @Inject constructor(
         set(value) = sharedPref.edit().putBoolean("homework_fullscreen", value).apply()
 
     val showSubjectsWithoutGradesFlow: Flow<Boolean>
-       get() = showSubjectsWithoutGradesPref.asFlow()
+        get() = showSubjectsWithoutGradesPref.asFlow()
 
     private val showSubjectsWithoutGradesPref: Preference<Boolean>
-        get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_subjects_without_grades), context.resources.getBoolean(R.bool.pref_default_subjects_without_grades))
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_subjects_without_grades),
+            context.resources.getBoolean(R.bool.pref_default_subjects_without_grades)
+        )
 
     val showSubjectsWithoutGrades: Boolean
         get() = getBoolean(
@@ -240,7 +279,10 @@ class PreferencesRepository @Inject constructor(
         )
 
     val isOptionalArithmeticAverageFlow: Flow<Boolean>
-    get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_optional_arithmetic_average), context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)).asFlow()
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_optional_arithmetic_average),
+            context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)
+        ).asFlow()
 
     var lasSyncDate: LocalDateTime
         get() = getLong(R.string.pref_key_last_sync_date, R.string.pref_default_last_sync_date)

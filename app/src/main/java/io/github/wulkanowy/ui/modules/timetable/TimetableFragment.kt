@@ -1,14 +1,19 @@
 package io.github.wulkanowy.ui.modules.timetable
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
+import android.view.ViewGroup
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.text.parseAsHtml
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.composethemeadapter.MdcTheme
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import dagger.hilt.android.AndroidEntryPoint
@@ -16,6 +21,7 @@ import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Timetable
 import io.github.wulkanowy.databinding.FragmentTimetableBinding
 import io.github.wulkanowy.ui.base.BaseFragment
+import io.github.wulkanowy.ui.base.BaseView
 import io.github.wulkanowy.ui.modules.main.MainActivity
 import io.github.wulkanowy.ui.modules.main.MainView
 import io.github.wulkanowy.ui.modules.timetable.additional.AdditionalLessonsFragment
@@ -30,6 +36,47 @@ import io.github.wulkanowy.utils.toLocalDateTime
 import io.github.wulkanowy.utils.toTimestamp
 import java.time.LocalDate
 import javax.inject.Inject
+
+@AndroidEntryPoint
+class TimetableFragment2 : Fragment(), BaseView, MainView.TitledView {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ) = ComposeView(requireContext()).apply {
+        setContent {
+            MdcTheme {
+                TimetableEntryList()
+            }
+        }
+    }
+
+    override val titleStringId = R.string.timetable_title
+
+    override fun showError(text: String, error: Throwable) {
+        TODO("Not yet implemented")
+    }
+
+    override fun showMessage(text: String) {
+        TODO("Not yet implemented")
+    }
+
+    override fun showExpiredDialog() {
+        TODO("Not yet implemented")
+    }
+
+    override fun openClearLoginView() {
+        TODO("Not yet implemented")
+    }
+
+    override fun showErrorDetailsDialog(error: Throwable) {
+        TODO("Not yet implemented")
+    }
+
+    override fun showChangePasswordSnackbar(redirectUrl: String) {
+        TODO("Not yet implemented")
+    }
+}
 
 @AndroidEntryPoint
 class TimetableFragment : BaseFragment<FragmentTimetableBinding>(R.layout.fragment_timetable),

@@ -121,6 +121,17 @@
         <item>all_year</item>
     </string-array>
 
+    <string-array name="timetable_show_attendance_entries">
+        <item>No</item>
+        <item>Line</item>
+        <item>Dot</item>
+    </string-array>
+    <string-array name="timetable_show_attendance_values" translatable="false">
+        <item>no</item>
+        <item>line</item>
+        <item>dot</item>
+    </string-array>
+
     <string-array name="dashboard_tile_entries">
         <item>Lucky number</item>
         <item>Unread messages</item>

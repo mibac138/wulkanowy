@@ -3,12 +3,15 @@ package io.github.wulkanowy.utils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHost
@@ -19,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ProduceStateScope
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
@@ -28,8 +32,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.SwipeRefreshState
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.Resource
 import io.github.wulkanowy.data.Status
@@ -51,6 +60,53 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.experimental.ExperimentalTypeInference
 
 @Composable
+fun <T> SwipeRefreshResourceViewComposable(
+    resource: Resource<T>,
+    onRefresh: () -> Unit,
+    success: @Composable (T) -> Unit
+) {
+    val hasData by remember { mutableStateOf(false) }.apply {
+        if (resource.data != null) value = true
+    }
+    AppSwipeRefresh(
+        state = rememberSwipeRefreshState(isRefreshing = hasData && resource.status == Status.LOADING),
+        onRefresh = onRefresh
+    ) {
+        ResourceViewComposable(resource = resource, onRetry = onRefresh, success)
+    }
+}
+
+@Composable
+fun AppSwipeRefresh(
+    state: SwipeRefreshState,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    swipeEnabled: Boolean = true,
+    refreshTriggerDistance: Dp = 80.dp,
+    indicatorAlignment: Alignment = Alignment.TopCenter,
+    indicatorPadding: PaddingValues = PaddingValues(0.dp),
+    indicator: @Composable (state: SwipeRefreshState, refreshTrigger: Dp) -> Unit = { s, trigger ->
+        SwipeRefreshIndicator(s, trigger, contentColor = MaterialTheme.colors.primary)
+    },
+    clipIndicatorToPadding: Boolean = true,
+    content: @Composable () -> Unit,
+) = SwipeRefresh(
+    state,
+    onRefresh,
+    modifier,
+    swipeEnabled,
+    refreshTriggerDistance,
+    indicatorAlignment,
+    indicatorPadding,
+    indicator,
+    clipIndicatorToPadding,
+    content
+)
+
+// Before any actual data arrives, loading and errors are full screen
+// After data arrives, loading is ignored (should be handled in parent SwipeRefreshLayout), and
+// errors are displayed as snackbars
+@Composable
 fun <T> ResourceViewComposable(
     resource: Resource<T>,
     onRetry: () -> Unit,
@@ -70,7 +126,7 @@ fun <T> ResourceViewComposable(
         }
         success(lastData.value!!)
     } else if (resource.status == Status.LOADING) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else if (resource.status == Status.ERROR) {
@@ -87,7 +143,8 @@ fun <T> ResourceViewComposable(
         } else {
             Column(
                 verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize(),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_error),
@@ -104,8 +161,7 @@ fun <T> ResourceViewComposable(
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 16.dp)
                 ) {
                     OutlinedButton(onClick = { /*TODO show error details*/ }) {
                         Text(
@@ -173,9 +229,7 @@ fun <T> flowWithTriggerTransform(
                     // This must not be an infinite flow (when not fulfilled effects include:
                     // infinite loading or `retry` button that's broken after the first use)
                     if (params.emitLoading) {
-                        println("!!!!!!!START EMIT ALL")
                         emitAll(flow.untilFirstResult())
-                        println("!!!!!!!COMPLETION!!!!! EMIT ALL")
                     } else {
                         emit(flow.toFirstResult())
                     }
@@ -188,10 +242,11 @@ fun <T> flowWithTriggerTransform(
     return flow
 }
 
-fun <R: Resource<T>, T> flatFlowWithTrigger(
+fun <R : Resource<T>, T> flatFlowWithTrigger(
     trigger: FlowTrigger,
     block: suspend (triggered: Boolean) -> Flow<R>
-) = flowWithTriggerTransform(trigger) { emitAll(block(it)) }
+) =
+    flowWithTriggerTransform(trigger) { emitAll(block(it)) }
 
 private class ProduceStateScopeImpl2<T>(
     state: MutableState<T>,

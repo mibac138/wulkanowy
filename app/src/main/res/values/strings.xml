@@ -652,6 +652,7 @@
     <string name="pref_view_expand_grade">Grades expanding</string>
     <string name="pref_view_timetable_show_timers">Mark current lesson</string>
     <string name="pref_view_timetable_show_groups">Show groups next to subjects</string>
+    <string name="pref_view_timetable_show_attendance">Show attendance</string>
     <string name="pref_view_grade_statistics_list">Show chart list in class grades</string>
     <string name="pref_view_subjects_without_grades">Show subjects without grades</string>
     <string name="pref_view_grade_color_scheme">Grades color scheme</string>

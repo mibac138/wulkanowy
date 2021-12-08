@@ -28,6 +28,7 @@ import io.github.wulkanowy.ui.modules.message.MessageFragment
 import io.github.wulkanowy.ui.modules.notificationscenter.NotificationsCenterFragment
 import io.github.wulkanowy.ui.modules.schoolannouncement.SchoolAnnouncementFragment
 import io.github.wulkanowy.ui.modules.timetable.TimetableFragment
+import io.github.wulkanowy.ui.modules.timetable.TimetableFragment2
 import io.github.wulkanowy.utils.capitalise
 import io.github.wulkanowy.utils.getThemeAttrColor
 import io.github.wulkanowy.utils.openInternetBrowser
@@ -88,7 +89,7 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
                 mainActivity.pushView(AttendanceSummaryFragment.newInstance())
             }
             onLessonsTileClickListener = {
-                mainActivity.pushView(TimetableFragment.newInstance(it))
+                mainActivity.pushView(TimetableFragment2())
             }
             onGradeTileClickListener = { mainActivity.pushView(GradeFragment.newInstance()) }
             onHomeworkTileClickListener = { mainActivity.pushView(HomeworkFragment.newInstance()) }

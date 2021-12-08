@@ -57,6 +57,7 @@ import io.github.wulkanowy.data.repositories.SemesterRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.ui.modules.grade.GradeAverageProvider
 import io.github.wulkanowy.ui.modules.grade.GradeSubject
+import io.github.wulkanowy.utils.AppSwipeRefresh
 import io.github.wulkanowy.utils.FlowTrigger
 import io.github.wulkanowy.utils.ResourceViewComposable
 import io.github.wulkanowy.utils.collectAsState2
@@ -149,12 +150,9 @@ fun GradeDetailsComposable() {
     val subjectsRes by viewModel.subjects.collectAsState2(Resource.loading())
     val colorTheme by viewModel.colorTheme.collectAsState(GradeColorTheme.VULCAN)
     ResourceViewComposable(resource = subjectsRes, onRetry = { viewModel.retry() }) { subjects ->
-        SwipeRefresh(
+        AppSwipeRefresh(
             state = rememberSwipeRefreshState(isRefreshing = isRefreshing),
             onRefresh = { viewModel.refresh() },
-            indicator = { s, trigger ->
-                SwipeRefreshIndicator(s, trigger, contentColor = MaterialTheme.colors.primary)
-            }
         ) {
             val state = rememberLazyListState()
             LazyColumn(state = state) {
