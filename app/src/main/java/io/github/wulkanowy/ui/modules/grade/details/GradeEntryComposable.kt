@@ -60,18 +60,18 @@ import io.github.wulkanowy.ui.modules.grade.GradeSubject
 import io.github.wulkanowy.utils.FlowTrigger
 import io.github.wulkanowy.utils.ResourceViewComposable
 import io.github.wulkanowy.utils.collectAsState2
-import io.github.wulkanowy.utils.flowWithTrigger
+import io.github.wulkanowy.utils.flatFlowWithTrigger
 import io.github.wulkanowy.utils.quantityStringResource
 import io.github.wulkanowy.utils.toFormattedString
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -86,39 +86,50 @@ class DetailsVM @Inject constructor(
 ) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean>
-        get() = _isRefreshing.asStateFlow()
+        get() = _isRefreshing
 
     private val _colorTheme = preferencesRepository.gradeColorThemeFlow
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), replay = 1)
     val colorTheme: SharedFlow<GradeColorTheme>
         get() = _colorTheme
 
-    private val stateTrigger = FlowTrigger()
-    private val _subjects = flowWithTrigger(stateTrigger) { manuallyTriggered ->
+    private val subjectsTrigger = FlowTrigger()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _subjects = flatFlowWithTrigger(subjectsTrigger) { manuallyTriggered ->
         val student = studentRepository.getCurrentStudent()
         val semester = semesterRepository.getCurrentSemester(student)
-        emitAll(
-            averageProvider.getGradesDetailsWithAverage(
-                student,
-                semester.semesterId,
-                forceRefresh = manuallyTriggered
-            )
-        )
-    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
+        averageProvider.getGradesDetailsWithAverage(
+            student,
+            semester.semesterId,
+            forceRefresh = manuallyTriggered
+        ).maybeFilterSubjectsWithoutGrades()
+    }
+        .catch { emit(Resource.error(it)) }
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
     val subjects: SharedFlow<Resource<List<GradeSubject>>>
         get() = _subjects
+
+    private fun Flow<Resource<List<GradeSubject>>>.maybeFilterSubjectsWithoutGrades(): Flow<Resource<List<GradeSubject>>> =
+        this.combine(preferencesRepository.showSubjectsWithoutGradesFlow) { res, showSubjectsWithoutGrades ->
+            if (!showSubjectsWithoutGrades) {
+                res.copy(data = res.data?.filter { it.grades.isNotEmpty() })
+            } else {
+                res
+            }
+        }
 
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            stateTrigger.triggerUntilCompletion()
+            subjectsTrigger.triggerUntilCompletion()
             _isRefreshing.value = false
         }
     }
 
     fun retry() {
         viewModelScope.launch {
-            stateTrigger.trigger()
+            subjectsTrigger.trigger(emitLoading = true)
         }
     }
 
@@ -136,7 +147,7 @@ fun GradeDetailsComposable() {
     val viewModel: DetailsVM = viewModel()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val subjectsRes by viewModel.subjects.collectAsState2(Resource.loading())
-    val colorTheme by viewModel.colorTheme.collectAsState()
+    val colorTheme by viewModel.colorTheme.collectAsState(GradeColorTheme.VULCAN)
     ResourceViewComposable(resource = subjectsRes, onRetry = { viewModel.retry() }) { subjects ->
         SwipeRefresh(
             state = rememberSwipeRefreshState(isRefreshing = isRefreshing),

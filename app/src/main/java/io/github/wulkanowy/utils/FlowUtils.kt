@@ -5,18 +5,25 @@ import io.github.wulkanowy.data.Status
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.combineTransform
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.experimental.ExperimentalTypeInference
 
 inline fun <ResultType, RequestType> networkBoundResource(
     mutex: Mutex = Mutex(),
@@ -90,6 +97,12 @@ fun <T> flowWithResourceIn(block: suspend () -> Flow<Resource<T>>) = flow {
 
 fun <T> Flow<Resource<T>>.afterLoading(callback: () -> Unit) = onEach {
     if (it.status != Status.LOADING) callback()
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+suspend fun <T> Flow<Resource<T>>.untilFirstResult() = transformWhile {
+    emit(it)
+    it.status == Status.LOADING
 }
 
 suspend fun <T> Flow<Resource<T>>.toFirstResult() = filter { it.status != Status.LOADING }.first()

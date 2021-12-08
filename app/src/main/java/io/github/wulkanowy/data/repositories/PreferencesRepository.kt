@@ -221,6 +221,12 @@ class PreferencesRepository @Inject constructor(
         )
         set(value) = sharedPref.edit().putBoolean("homework_fullscreen", value).apply()
 
+    val showSubjectsWithoutGradesFlow: Flow<Boolean>
+       get() = showSubjectsWithoutGradesPref.asFlow()
+
+    private val showSubjectsWithoutGradesPref: Preference<Boolean>
+        get() = flowSharedPref.getBoolean(context.getString(R.string.pref_key_subjects_without_grades), context.resources.getBoolean(R.bool.pref_default_subjects_without_grades))
+
     val showSubjectsWithoutGrades: Boolean
         get() = getBoolean(
             R.string.pref_key_subjects_without_grades,

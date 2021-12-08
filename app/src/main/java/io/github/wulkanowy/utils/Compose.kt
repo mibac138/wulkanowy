@@ -1,7 +1,5 @@
 package io.github.wulkanowy.utils
 
-import android.content.res.Resources
-import androidx.annotation.PluralsRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,20 +10,20 @@ import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.OutlinedButton
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ProduceStateScope
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +42,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -52,111 +51,147 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.experimental.ExperimentalTypeInference
 
 @Composable
-@ReadOnlyComposable
-private fun resources(): Resources {
-    LocalConfiguration.current
-    return LocalContext.current.resources
-}
-
-
-@Composable
 fun <T> ResourceViewComposable(
     resource: Resource<T>,
     onRetry: () -> Unit,
     success: @Composable (T) -> Unit
 ) {
-    if (resource.status == Status.SUCCESS || (resource.status == Status.LOADING && resource.data != null)) {
-        success(resource.data!!)
-    }
-    if (resource.status == Status.LOADING) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val lastData = remember { mutableStateOf<T?>(null) }
+    if (resource.status == Status.SUCCESS
+        || (resource.status == Status.LOADING &&
+            (resource.data != null || lastData.value != null))
+    ) {
+        if (resource.data != null) {
+            lastData.value = resource.data
+        } else {
+            // Success is required to have associated data
+            assert(resource.status != Status.SUCCESS)
+        }
+        success(lastData.value!!)
+    } else if (resource.status == Status.LOADING) {
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-    }
-    if (resource.status == Status.ERROR) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_error),
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(bottom = 20.dp)
-                    .size(100.dp)
-            )
-            Text(
-                text = resources().getString(resource.error!!),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(8.dp),
-                fontSize = 20.sp
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .padding(top = 16.dp)
+    } else if (resource.status == Status.ERROR) {
+        val errorName = resource.error!!.resString()
+        val data = lastData.value
+        if (data != null) {
+            val actionLabel = stringResource(id = R.string.all_details)
+            LaunchedEffect(snackbarHostState, resource.error) {
+                val result =
+                    snackbarHostState.showSnackbar(errorName, actionLabel, SnackbarDuration.Long)
+                // TODO show error details
+            }
+            success(data)
+        } else {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OutlinedButton(onClick = { /*TODO*/ }) {
-                    Text(
-                        text = stringResource(id = R.string.all_details).uppercase(),
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-                Button(onClick = onRetry) {
-                    Text(
-                        text = stringResource(id = R.string.all_retry).uppercase(),
-                        fontWeight = FontWeight.Medium,
-                    )
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_error),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(bottom = 20.dp)
+                        .size(100.dp)
+                )
+                Text(
+                    text = "$errorName [Compose]",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(8.dp),
+                    fontSize = 20.sp
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                ) {
+                    OutlinedButton(onClick = { /*TODO show error details*/ }) {
+                        Text(
+                            text = stringResource(id = R.string.all_details).uppercase(),
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Button(onClick = onRetry) {
+                        Text(
+                            text = stringResource(id = R.string.all_retry).uppercase(),
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
         }
     }
+    SnackbarHost(hostState = snackbarHostState)
 }
 
-class FlowTrigger(private val onRefresh: Channel<() -> Unit>) {
-    fun trigger() {
-        onRefresh.trySend {}.getOrThrow()
+internal data class TriggerData(val emitLoading: Boolean, val callback: () -> Unit)
+class FlowTrigger internal constructor(private val onRefresh: Channel<TriggerData>) {
+    fun trigger(emitLoading: Boolean = false) {
+        onRefresh.trySend(TriggerData(emitLoading) {}).getOrThrow()
     }
 
-    suspend fun triggerUntilCompletion() {
+    suspend fun triggerUntilCompletion(emitLoading: Boolean = false) {
         val done = Channel<Unit>(1)
-        onRefresh.trySend { done.trySend(Unit).getOrThrow() }.getOrThrow()
+        // This should never actually throw
+        val callback = { done.trySend(Unit).getOrThrow() }
+        // This could throw if there were multiple refreshes in progress at once, but that shouldn't
+        // happen (or more generally, this can throw whenever there's more than one flow using this
+        // trigger at the same time)
+        onRefresh.trySend(TriggerData(emitLoading, callback)).getOrThrow()
         done.receive()
     }
 
     internal suspend fun receive() = onRefresh.receive()
 }
 
+// Do NOT share across flows
 fun FlowTrigger(): FlowTrigger =
     FlowTrigger(
         Channel(1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     )
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTypeInference::class)
-fun <T> flowWithTrigger(
+fun <T> flowWithTriggerTransform(
     trigger: FlowTrigger,
     @BuilderInference block: suspend FlowCollector<Resource<T>>.(manuallyTriggered: Boolean) -> Unit
 ): Flow<Resource<T>> {
-    class Ref<T>(var data: T)
-
-    val triggerInProgress = Ref(false)
+    var triggerInProgress = false
+    var done = false
     val flow = merge(
         // Don't emit values while trigger in progress to prevent emitting the same values twice
-        flow { block(false) }.transform { if (!triggerInProgress.data) emit(it) },
+        flow { block(false) }
+            .transform { if (!triggerInProgress) emit(it) }
+            .onCompletion { done = true },
         flow {
-            while (true) {
-                val onDoneCallback = trigger.receive()
-                triggerInProgress.data = true
-                // Only subscribe for a single real (not loading) value
-                emit(flow {
-                    block(true)
-                }.toFirstResult())
-                onDoneCallback()
-                triggerInProgress.data = false
+            while (!done) {
+                val params = trigger.receive()
+                triggerInProgress = true
+                try {
+                    val flow = flow { block(true) }
+                    // This must not be an infinite flow (when not fulfilled effects include:
+                    // infinite loading or `retry` button that's broken after the first use)
+                    if (params.emitLoading) {
+                        println("!!!!!!!START EMIT ALL")
+                        emitAll(flow.untilFirstResult())
+                        println("!!!!!!!COMPLETION!!!!! EMIT ALL")
+                    } else {
+                        emit(flow.toFirstResult())
+                    }
+                } finally {
+                    triggerInProgress = false
+                    params.callback()
+                }
             }
         })
     return flow
 }
+
+fun <R: Resource<T>, T> flatFlowWithTrigger(
+    trigger: FlowTrigger,
+    block: suspend (triggered: Boolean) -> Flow<R>
+) = flowWithTriggerTransform(trigger) { emitAll(block(it)) }
 
 private class ProduceStateScopeImpl2<T>(
     state: MutableState<T>,
@@ -197,31 +232,4 @@ fun <T : R, R> Flow<T>.collectAsState2(
     } else withContext(context) {
         collect { value = it }
     }
-}
-
-/**
- * Load a quantity string resource.
- *
- * @param id the resource identifier
- * @param quantity The number used to get the string for the current language's plural rules.
- * @return the string data associated with the resource
- */
-@Composable
-fun quantityStringResource(@PluralsRes id: Int, quantity: Int): String {
-    val context = LocalContext.current
-    return context.resources.getQuantityString(id, quantity)
-}
-
-/**
- * Load a quantity string resource with formatting.
- *
- * @param id the resource identifier
- * @param quantity The number used to get the string for the current language's plural rules.
- * @param formatArgs the format arguments
- * @return the string data associated with the resource
- */
-@Composable
-fun quantityStringResource(@PluralsRes id: Int, quantity: Int, vararg formatArgs: Any): String {
-    val context = LocalContext.current
-    return context.resources.getQuantityString(id, quantity, *formatArgs)
 }
