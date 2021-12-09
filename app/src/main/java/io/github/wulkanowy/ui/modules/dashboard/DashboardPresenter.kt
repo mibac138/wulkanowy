@@ -260,10 +260,9 @@ class DashboardPresenter @Inject constructor(
                 forceRefresh = forceRefresh
             ).takeIf { DashboardItem.Tile.MESSAGES in selectedTiles } ?: flowOf(null)
 
-            val attendanceFlow = attendanceSummaryRepository.getAttendanceSummary(
+            val attendanceFlow = attendanceSummaryRepository.getOverallAttendanceSummary(
                 student = student,
                 semester = semester,
-                subjectId = -1,
                 forceRefresh = forceRefresh
             ).takeIf { DashboardItem.Tile.ATTENDANCE in selectedTiles } ?: flowOf(null)
 

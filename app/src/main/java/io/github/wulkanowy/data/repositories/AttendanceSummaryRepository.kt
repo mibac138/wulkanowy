@@ -48,4 +48,9 @@ class AttendanceSummaryRepository @Inject constructor(
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester))
         }
     )
+
+    // Gets the summary of all subjects added up
+    // (also called "Wszystkie" in the attendance summary view)
+    fun getOverallAttendanceSummary(student: Student, semester: Semester, forceRefresh: Boolean)
+        = getAttendanceSummary(student, semester, -1, forceRefresh)
 }

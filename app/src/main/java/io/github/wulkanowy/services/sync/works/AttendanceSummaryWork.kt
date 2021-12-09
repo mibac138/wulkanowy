@@ -11,6 +11,6 @@ class AttendanceSummaryWork @Inject constructor(
 ) : Work {
 
     override suspend fun doWork(student: Student, semester: Semester) {
-        attendanceSummaryRepository.getAttendanceSummary(student, semester, -1, true).waitForResult()
+        attendanceSummaryRepository.getOverallAttendanceSummary(student, semester, true).waitForResult()
     }
 }
