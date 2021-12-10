@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Homework
+import io.github.wulkanowy.data.db.entities.Recipient
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.pojos.GroupNotificationData
 import io.github.wulkanowy.data.pojos.NotificationData
@@ -19,7 +20,7 @@ class NewHomeworkNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<Homework>, student: Student) {
+    suspend fun notify(scope: String, items: List<Homework>, recipients: List<Student>) {
         val today = LocalDate.now()
         val lines = items.filter { !it.date.isBefore(today) }
             .map {
@@ -44,9 +45,10 @@ class NewHomeworkNotification @Inject constructor(
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Homework),
             type = NotificationType.NEW_HOMEWORK,
-            notificationDataList = notificationDataList
+            notificationDataList = notificationDataList,
+            scope = scope
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

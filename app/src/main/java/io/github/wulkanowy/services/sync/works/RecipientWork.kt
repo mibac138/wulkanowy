@@ -11,11 +11,11 @@ class RecipientWork @Inject constructor(
     private val recipientRepository: RecipientRepository
 ) : Work {
 
-    override suspend fun doWork(student: Student, semester: Semester) {
-        reportingUnitRepository.refreshReportingUnits(student)
+    override suspend fun doWork(students: List<StudentWithCurrentSemester>) {
+        for ((student, _) in students) {
+            reportingUnitRepository.refreshReportingUnits(student)
 
-        reportingUnitRepository.getReportingUnits(student).let { units ->
-            units.map {
+            reportingUnitRepository.getReportingUnits(student).forEach {
                 recipientRepository.refreshRecipients(student, it, 2)
             }
         }

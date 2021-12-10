@@ -12,12 +12,14 @@ import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.github.wulkanowy.R
+import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.data.repositories.SemesterRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.sdk.exception.FeatureNotAvailableException
 import io.github.wulkanowy.sdk.scrapper.exception.FeatureDisabledException
 import io.github.wulkanowy.services.sync.channels.DebugChannel
+import io.github.wulkanowy.services.sync.works.StudentWithCurrentSemester
 import io.github.wulkanowy.services.sync.works.Work
 import io.github.wulkanowy.utils.DispatchersProvider
 import io.github.wulkanowy.utils.getCompatColor
@@ -43,13 +45,16 @@ class SyncWorker @AssistedInject constructor(
 
         if (!studentRepository.isCurrentStudentSet()) return@withContext Result.failure()
 
-        val student = studentRepository.getCurrentStudent()
-        val semester = semesterRepository.getCurrentSemester(student, true)
+        val students = studentRepository.getSavedStudents().map {
+            val student = it.student
+            val semester = semesterRepository.getCurrentSemester(student, forceRefresh = true)
+            StudentWithCurrentSemester(student, semester)
+        }
 
         val exceptions = works.mapNotNull { work ->
             try {
                 Timber.i("${work::class.java.simpleName} is starting")
-                work.doWork(student, semester)
+                work.doWork(students)
                 Timber.i("${work::class.java.simpleName} result: Success")
                 null
             } catch (e: Throwable) {

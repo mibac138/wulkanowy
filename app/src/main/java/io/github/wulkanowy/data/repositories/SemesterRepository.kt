@@ -29,13 +29,13 @@ class SemesterRepository @Inject constructor(
     ) = withContext(dispatchers.io) {
         val semesters = semesterDb.loadAll(student.studentId, student.classId)
 
-        if (isShouldFetch(student, semesters, forceRefresh, refreshOnNoCurrent)) {
+        if (shouldFetch(student, semesters, forceRefresh, refreshOnNoCurrent)) {
             refreshSemesters(student)
             semesterDb.loadAll(student.studentId, student.classId)
         } else semesters
     }
 
-    private fun isShouldFetch(
+    private fun shouldFetch(
         student: Student,
         semesters: List<Semester>,
         forceRefresh: Boolean,

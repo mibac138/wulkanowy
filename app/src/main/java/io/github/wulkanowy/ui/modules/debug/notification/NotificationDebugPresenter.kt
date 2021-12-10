@@ -47,44 +47,44 @@ class NotificationDebugPresenter @Inject constructor(
 
     private val items = listOf(
         NotificationDebugItem(R.string.grade_title) { n ->
-            withStudent { newGradeNotification.notifyDetails(debugGradeDetailsItems.take(n), it) }
+            withRecipient { newGradeNotification.notifyDetails("", debugGradeDetailsItems.take(n), it.single()) }
         },
         NotificationDebugItem(R.string.grade_summary_predicted_grade) { n ->
-            withStudent { newGradeNotification.notifyPredicted(debugGradeSummaryItems.take(n), it) }
+            withRecipient { newGradeNotification.notifyPredicted("", debugGradeSummaryItems.take(n), it.single()) }
         },
         NotificationDebugItem(R.string.grade_summary_final_grade) { n ->
-            withStudent { newGradeNotification.notifyFinal(debugGradeSummaryItems.take(n), it) }
+            withRecipient { newGradeNotification.notifyFinal("", debugGradeSummaryItems.take(n), it.single()) }
         },
         NotificationDebugItem(R.string.homework_title) { n ->
-            withStudent { newHomeworkNotification.notify(debugHomeworkItems.take(n), it) }
+            withRecipient { newHomeworkNotification.notify("", debugHomeworkItems.take(n), it) }
         },
         NotificationDebugItem(R.string.conferences_title) { n ->
-            withStudent { newConferenceNotification.notify(debugConferenceItems.take(n), it) }
+            withRecipient { newConferenceNotification.notify("", debugConferenceItems.take(n), it) }
         },
         NotificationDebugItem(R.string.exam_title) { n ->
-            withStudent { newExamNotification.notify(debugExamItems.take(n), it) }
+            withRecipient { newExamNotification.notify("", debugExamItems.take(n), it) }
         },
         NotificationDebugItem(R.string.message_title) { n ->
-            withStudent { newMessageNotification.notify(debugMessageItems.take(n), it) }
+            withRecipient { newMessageNotification.notify("", debugMessageItems.take(n), it) }
         },
         NotificationDebugItem(R.string.note_title) { n ->
-            withStudent { newNoteNotification.notify(debugNoteItems.take(n), it) }
+            withRecipient { newNoteNotification.notify("", debugNoteItems.take(n), it) }
         },
         NotificationDebugItem(R.string.attendance_title) { n ->
-            withStudent { newAttendanceNotification.notify(debugAttendanceItems.take(n), it) }
+            withRecipient { newAttendanceNotification.notify("", debugAttendanceItems.take(n), it) }
         },
         NotificationDebugItem(R.string.timetable_title) { n ->
-            withStudent { changeTimetableNotification.notify(debugTimetableItems.take(n), it) }
+            withRecipient { changeTimetableNotification.notify("", debugTimetableItems.take(n), it) }
         },
         NotificationDebugItem(R.string.school_announcement_title) { n ->
-            withStudent {
-                newSchoolAnnouncementNotification.notify(debugSchoolAnnouncementItems.take(n), it)
+            withRecipient {
+                newSchoolAnnouncementNotification.notify("", debugSchoolAnnouncementItems.take(n), it)
             }
         },
         NotificationDebugItem(R.string.lucky_number_title) { n ->
-            withStudent {
+            withRecipient {
                 repeat(n) { _ ->
-                    newLuckyNumberNotification.notify(debugLuckyNumber, it)
+                    newLuckyNumberNotification.notify("", debugLuckyNumber, it)
                 }
             }
         },
@@ -99,9 +99,9 @@ class NotificationDebugPresenter @Inject constructor(
         }
     }
 
-    private fun withStudent(block: suspend (Student) -> Unit) {
+    private fun withRecipient(block: suspend (List<Student>) -> Unit) {
         presenterScope.launch {
-            block(studentRepository.getCurrentStudent(false))
+            block(listOf(studentRepository.getCurrentStudent(false)))
         }
     }
 }

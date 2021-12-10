@@ -19,7 +19,7 @@ class NewAttendanceNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<Attendance>, student: Student) {
+    suspend fun notify(scope: String, items: List<Attendance>, recipients: List<Student>) {
         val lines = items.filterNot { it.presence || it.name == "UNKNOWN" }
             .map {
                 val description = context.getString(it.descriptionRes)
@@ -47,9 +47,10 @@ class NewAttendanceNotification @Inject constructor(
                 notificationDataList.size
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Attendance),
-            type = NotificationType.NEW_ATTENDANCE
+            type = NotificationType.NEW_ATTENDANCE,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

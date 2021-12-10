@@ -20,7 +20,7 @@ class ChangeTimetableNotification @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
 
-    suspend fun notify(items: List<Timetable>, student: Student) {
+    suspend fun notify(scope: String, items: List<Timetable>, recipients: List<Student>) {
         val currentTime = LocalDateTime.now()
         val changedLessons = items.filter { (it.canceled || it.changes) && it.start > currentTime }
         val notificationDataList = changedLessons.groupBy { it.date }
@@ -54,10 +54,11 @@ class ChangeTimetableNotification @Inject constructor(
                 changedLessons.size
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Timetable()),
-            type = NotificationType.CHANGE_TIMETABLE
+            type = NotificationType.CHANGE_TIMETABLE,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 
     private fun getNotificationContents(date: LocalDate, lessons: List<Timetable>): List<String> {

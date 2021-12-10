@@ -18,7 +18,7 @@ class NewNoteNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<Note>, student: Student) {
+    suspend fun notify(scope: String, items: List<Note>, recipients: List<Student>) {
         val notificationDataList = items.map {
             val titleRes = when (NoteCategory.getByValue(it.categoryType)) {
                 NoteCategory.POSITIVE -> R.plurals.praise_new_items
@@ -38,9 +38,10 @@ class NewNoteNotification @Inject constructor(
             intentToStart = SplashActivity.getStartIntent(context, Destination.Note),
             title = context.getPlural(R.plurals.note_new_items, items.size),
             content = context.getPlural(R.plurals.note_notify_new_items, items.size, items.size),
-            type = NotificationType.NEW_NOTE
+            type = NotificationType.NEW_NOTE,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

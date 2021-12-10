@@ -15,7 +15,7 @@ class NewLuckyNumberNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(item: LuckyNumber, student: Student) {
+    suspend fun notify(scope: String, item: LuckyNumber, recipients: List<Student>) {
         val notificationData = NotificationData(
             title = context.getString(R.string.lucky_number_notify_new_item_title),
             content = context.getString(
@@ -24,11 +24,11 @@ class NewLuckyNumberNotification @Inject constructor(
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.LuckyNumber)
         )
-
+        // TODO send group notification
         appNotificationManager.sendSingleNotification(
             notificationData = notificationData,
             notificationType = NotificationType.NEW_LUCKY_NUMBER,
-            student = student
+            recipients = recipients,
         )
     }
 }

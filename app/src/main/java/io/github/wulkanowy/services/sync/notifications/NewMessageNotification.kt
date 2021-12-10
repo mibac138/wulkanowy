@@ -17,7 +17,7 @@ class NewMessageNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<Message>, student: Student) {
+    suspend fun notify(scope: String, items: List<Message>, recipients: List<Student>) {
         val notificationDataList = items.map {
             NotificationData(
                 title = context.getPlural(R.plurals.message_new_items, 1),
@@ -31,9 +31,10 @@ class NewMessageNotification @Inject constructor(
             title = context.getPlural(R.plurals.message_new_items, items.size),
             content = context.getPlural(R.plurals.message_notify_new_items, items.size, items.size),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Message),
-            type = NotificationType.NEW_MESSAGE
+            type = NotificationType.NEW_MESSAGE,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

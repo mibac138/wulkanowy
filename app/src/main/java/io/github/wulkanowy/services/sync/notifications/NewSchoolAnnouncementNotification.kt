@@ -17,7 +17,7 @@ class NewSchoolAnnouncementNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<SchoolAnnouncement>, student: Student) {
+    suspend fun notify(scope: String, items: List<SchoolAnnouncement>, recipients: List<Student>) {
         val notificationDataList = items.map {
             NotificationData(
                 intentToStart = SplashActivity.getStartIntent(
@@ -46,9 +46,10 @@ class NewSchoolAnnouncementNotification @Inject constructor(
                 items.size,
                 items.size
             ),
-            notificationDataList = notificationDataList
+            notificationDataList = notificationDataList,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

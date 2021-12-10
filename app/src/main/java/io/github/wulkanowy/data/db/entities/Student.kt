@@ -41,6 +41,7 @@ data class Student(
 
     var password: String,
 
+    // The diary symbol, e.g. `bydgoszcz`
     val symbol: String,
 
     @ColumnInfo(name = "student_id")

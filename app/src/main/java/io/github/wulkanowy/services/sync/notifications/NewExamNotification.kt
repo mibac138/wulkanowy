@@ -19,7 +19,7 @@ class NewExamNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notify(items: List<Exam>, student: Student) {
+    suspend fun notify(scope: String, items: List<Exam>, recipients: List<Student>) {
         val today = LocalDate.now()
         val lines = items.filter { !it.date.isBefore(today) }
             .map {
@@ -44,9 +44,10 @@ class NewExamNotification @Inject constructor(
                 lines.size
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Exam),
-            type = NotificationType.NEW_EXAM
+            type = NotificationType.NEW_EXAM,
+            scope = scope
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, recipients)
     }
 }

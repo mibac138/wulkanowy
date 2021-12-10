@@ -13,74 +13,127 @@ import io.github.wulkanowy.services.sync.channels.NewSchoolAnnouncementsChannel
 import io.github.wulkanowy.services.sync.channels.PushChannel
 import io.github.wulkanowy.services.sync.channels.TimetableChangeChannel
 
+enum class NotificationScope {
+    /**
+     * One notification for whole app
+     */
+    App,
+
+    /**
+     * One notification for every school
+     */
+    School,
+
+    /**
+     * One notification for every class
+     */
+    Class,
+
+    /**
+     * One notification for every group in a class
+     */
+    LessonGroup,
+
+    /**
+     * One notification for every person. When an account with the same name is registered in the
+     * app more than once (e.g. both a student and a parent account) this is considered a single
+     * person
+     */
+    Person,
+
+    /**
+     * One notification for every account.
+     */
+    Account,
+}
+
+//fun <T> Iterable<T>.groupBy(type: NotificationType, extractor: (T) -> Student): Collection<List<T>>
+//    = groupBy(type.scope, extractor)
+//
+//fun <T> Iterable<T>.groupBy(scope: NotificationScope, extractor: (T) -> Student): Map<String, List<T>> {
+//    val grouper = { data: T ->
+//        val student = extractor(data)
+//        when(scope) {
+//            NotificationScope.App -> ""
+//            NotificationScope.School -> student.schoolName
+//            // TODO should also include level (e.g. `1a` instead of only `a`, which is what className means)
+//            NotificationScope.Class -> student.className
+//            NotificationScope.LessonGroup -> student.userName // TODO
+//            NotificationScope.Person -> student.userName // *should* be unique
+//            NotificationScope.Account -> student.id
+//        }
+//    }
+//    return this.groupBy(grouper)
+//}
+
 enum class NotificationType(
-    val group: String?,
     val channel: String,
-    val icon: Int
+    val icon: Int,
+    val scope: NotificationScope,
 ) {
     NEW_CONFERENCE(
-        group = "new_conferences_group",
         channel = NewConferencesChannel.CHANNEL_ID,
         icon = R.drawable.ic_more_conferences,
+        scope = NotificationScope.Class,
     ),
     NEW_EXAM(
-        group = "new_exam_group",
         channel = NewExamChannel.CHANNEL_ID,
-        icon = R.drawable.ic_main_exam
+        icon = R.drawable.ic_main_exam,
+        scope = NotificationScope.LessonGroup,
     ),
     NEW_GRADE_DETAILS(
-        group = "new_grade_details_group",
         channel = NewGradesChannel.CHANNEL_ID,
         icon = R.drawable.ic_stat_grade,
+        scope = NotificationScope.Person,
     ),
     NEW_GRADE_PREDICTED(
-        group = "new_grade_predicted_group",
         channel = NewGradesChannel.CHANNEL_ID,
         icon = R.drawable.ic_stat_grade,
+        scope = NotificationScope.Person,
     ),
     NEW_GRADE_FINAL(
-        group = "new_grade_final_group",
         channel = NewGradesChannel.CHANNEL_ID,
         icon = R.drawable.ic_stat_grade,
+        scope = NotificationScope.Person,
     ),
     NEW_HOMEWORK(
-        group = "new_homework_group",
         channel = NewHomeworkChannel.CHANNEL_ID,
         icon = R.drawable.ic_more_homework,
+        scope = NotificationScope.Class,
     ),
     NEW_LUCKY_NUMBER(
-        group = null,
         channel = LuckyNumberChannel.CHANNEL_ID,
         icon = R.drawable.ic_stat_luckynumber,
+        scope = NotificationScope.School,
     ),
     NEW_MESSAGE(
-        group = "new_message_group",
         channel = NewMessagesChannel.CHANNEL_ID,
         icon = R.drawable.ic_stat_message,
+        scope = NotificationScope.Account,
     ),
     NEW_NOTE(
-        group = "new_notes_group",
         channel = NewNotesChannel.CHANNEL_ID,
-        icon = R.drawable.ic_stat_note
+        icon = R.drawable.ic_stat_note,
+        scope = NotificationScope.Person,
     ),
     NEW_ANNOUNCEMENT(
-        group = "new_school_announcements_group",
         channel = NewSchoolAnnouncementsChannel.CHANNEL_ID,
-        icon = R.drawable.ic_all_about
+        icon = R.drawable.ic_all_about,
+        scope = NotificationScope.School,
     ),
     CHANGE_TIMETABLE(
-        group = "change_timetable_group",
         channel = TimetableChangeChannel.CHANNEL_ID,
-        icon = R.drawable.ic_main_timetable
+        icon = R.drawable.ic_main_timetable,
+        scope = NotificationScope.LessonGroup,
     ),
     NEW_ATTENDANCE(
-        group = "new_attendance_group",
         channel = NewAttendanceChannel.CHANNEL_ID,
-        icon = R.drawable.ic_main_attendance
+        icon = R.drawable.ic_main_attendance,
+        scope = NotificationScope.Person,
     ),
     PUSH(
-        group = null,
         channel = PushChannel.CHANNEL_ID,
-        icon = R.drawable.ic_stat_all
+        icon = R.drawable.ic_stat_all,
+        scope = NotificationScope.App,
     )
 }

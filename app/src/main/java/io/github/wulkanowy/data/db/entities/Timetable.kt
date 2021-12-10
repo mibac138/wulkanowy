@@ -41,7 +41,7 @@ data class Timetable(
     val info: String,
 
     @ColumnInfo(name = "student_plan")
-    val isStudentPlan: Boolean,
+    val isStudentPlan: Boolean, // is *this* student's plan
 
     val changes: Boolean,
 

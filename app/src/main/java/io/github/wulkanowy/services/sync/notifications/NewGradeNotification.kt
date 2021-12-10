@@ -18,7 +18,7 @@ class NewGradeNotification @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend fun notifyDetails(items: List<Grade>, student: Student) {
+    suspend fun notifyDetails(scope: String, items: List<Grade>, student: Student) {
         val notificationDataList = items.map {
             NotificationData(
                 title = context.getPlural(R.plurals.grade_new_items, 1),
@@ -32,13 +32,14 @@ class NewGradeNotification @Inject constructor(
             title = context.getPlural(R.plurals.grade_new_items, items.size),
             content = context.getPlural(R.plurals.grade_notify_new_items, items.size, items.size),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Grade),
-            type = NotificationType.NEW_GRADE_DETAILS
+            type = NotificationType.NEW_GRADE_DETAILS,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, listOf(student))
     }
 
-    suspend fun notifyPredicted(items: List<GradeSummary>, student: Student) {
+    suspend fun notifyPredicted(scope: String, items: List<GradeSummary>, student: Student) {
         val notificationDataList = items.map {
             NotificationData(
                 title = context.getPlural(R.plurals.grade_new_items_predicted, 1),
@@ -56,13 +57,14 @@ class NewGradeNotification @Inject constructor(
                 items.size
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Grade),
-            type = NotificationType.NEW_GRADE_PREDICTED
+            type = NotificationType.NEW_GRADE_PREDICTED,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, listOf(student))
     }
 
-    suspend fun notifyFinal(items: List<GradeSummary>, student: Student) {
+    suspend fun notifyFinal(scope: String, items: List<GradeSummary>, student: Student) {
         val notificationDataList = items.map {
             NotificationData(
                 title = context.getPlural(R.plurals.grade_new_items_final, 1),
@@ -80,9 +82,10 @@ class NewGradeNotification @Inject constructor(
                 items.size
             ),
             intentToStart = SplashActivity.getStartIntent(context, Destination.Grade),
-            type = NotificationType.NEW_GRADE_FINAL
+            type = NotificationType.NEW_GRADE_FINAL,
+            scope = scope,
         )
 
-        appNotificationManager.sendMultipleNotifications(groupNotificationData, student)
+        appNotificationManager.sendMultipleNotifications(groupNotificationData, listOf(student))
     }
 }

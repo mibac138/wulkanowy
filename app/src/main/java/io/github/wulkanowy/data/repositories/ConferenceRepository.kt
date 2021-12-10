@@ -62,7 +62,7 @@ class ConferenceRepository @Inject constructor(
         }
     )
 
-    fun getConferenceFromDatabase(semester: Semester): Flow<List<Conference>> =
+    fun getConferencesFromDatabase(semester: Semester): Flow<List<Conference>> =
         conferenceDb.loadAll(
             diaryId = semester.diaryId,
             studentId = semester.studentId,

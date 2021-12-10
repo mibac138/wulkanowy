@@ -14,6 +14,7 @@ data class GroupNotificationData(
     val title: String,
     val content: String,
     val intentToStart: Intent,
-    val type: NotificationType
+    val type: NotificationType,
+    val scope: String
 )
 

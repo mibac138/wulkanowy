@@ -17,7 +17,6 @@ import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.utils.PendingIntentCompat
 import io.github.wulkanowy.utils.getCompatBitmap
 import io.github.wulkanowy.utils.getCompatColor
-import io.github.wulkanowy.utils.nickOrName
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.random.Random
@@ -33,7 +32,7 @@ class AppNotificationManager @Inject constructor(
     suspend fun sendSingleNotification(
         notificationData: NotificationData,
         notificationType: NotificationType,
-        student: Student
+        recipients: List<Student>
     ) {
         val notification = NotificationCompat.Builder(context, notificationType.channel)
             .setLargeIcon(context.getCompatBitmap(notificationType.icon, R.color.colorPrimary))
@@ -56,28 +55,27 @@ class AppNotificationManager @Inject constructor(
             .setStyle(
                 NotificationCompat.BigTextStyle()
                     .bigText(notificationData.content)
-                    .also { builder ->
-                        if (shouldShowStudentName()) {
-                            builder.setSummaryText(student.nickOrName)
-                        }
-                    }
+//                    .also { builder ->
+//                        if (shouldShowStudentName()) {
+//                            builder.setSummaryText(student.nickOrName)
+//                        }
+//                    }
             )
             .build()
 
         notificationManager.notify(Random.nextInt(), notification)
-        saveNotification(notificationData, notificationType, student)
+        saveNotification(notificationData, notificationType, recipients)
     }
 
     @SuppressLint("InlinedApi")
     suspend fun sendMultipleNotifications(
         groupNotificationData: GroupNotificationData,
-        student: Student
+        recipients: List<Student>
     ) {
         val notificationType = groupNotificationData.type
-        val groupType = notificationType.group ?: return
-        val group = "${groupType}_${student.id}"
+        val group = "${notificationType.channel}_${groupNotificationData.scope}"
 
-        sendSummaryNotification(groupNotificationData, group, student)
+        sendSummaryNotification(groupNotificationData, group, groupNotificationData.scope)
 
         groupNotificationData.notificationDataList.forEach { notificationData ->
             val notification = NotificationCompat.Builder(context, notificationType.channel)
@@ -102,23 +100,21 @@ class AppNotificationManager @Inject constructor(
                     NotificationCompat.BigTextStyle()
                         .bigText(notificationData.content)
                         .also { builder ->
-                            if (shouldShowStudentName()) {
-                                builder.setSummaryText(student.nickOrName)
-                            }
+                            builder.setSummaryText(groupNotificationData.scope)
                         }
                 )
                 .setGroup(group)
                 .build()
 
             notificationManager.notify(Random.nextInt(), notification)
-            saveNotification(notificationData, groupNotificationData.type, student)
+            saveNotification(notificationData, groupNotificationData.type, recipients)
         }
     }
 
-    private suspend fun sendSummaryNotification(
+    private fun sendSummaryNotification(
         groupNotificationData: GroupNotificationData,
         group: String,
-        student: Student
+        scope: String
     ) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
 
@@ -134,9 +130,7 @@ class AppNotificationManager @Inject constructor(
                 .setStyle(
                     NotificationCompat.InboxStyle()
                         .also { builder ->
-                            if (shouldShowStudentName()) {
-                                builder.setSummaryText(student.nickOrName)
-                            }
+                            builder.setSummaryText(scope)
                             groupNotificationData.notificationDataList.forEach {
                                 builder.addLine(it.content)
                             }
@@ -155,26 +149,25 @@ class AppNotificationManager @Inject constructor(
                 .setGroupSummary(true)
                 .build()
 
-        val groupId = student.id * 100 + groupNotificationData.type.ordinal
-        notificationManager.notify(groupId.toInt(), summaryNotification)
+        val groupId = group.hashCode()
+        notificationManager.notify(groupId, summaryNotification)
     }
 
     private suspend fun saveNotification(
         notificationData: NotificationData,
         notificationType: NotificationType,
-        student: Student
+        recipients: List<Student>
     ) {
-        val notificationEntity = Notification(
-            studentId = student.id,
-            title = notificationData.title,
-            content = notificationData.content,
-            type = notificationType,
-            date = LocalDateTime.now()
-        )
+        for (student in recipients) {
+            val notificationEntity = Notification(
+                studentId = student.id,
+                title = notificationData.title,
+                content = notificationData.content,
+                type = notificationType,
+                date = LocalDateTime.now()
+            )
 
-        notificationRepository.saveNotification(notificationEntity)
+            notificationRepository.saveNotification(notificationEntity)
+        }
     }
-
-    private suspend fun shouldShowStudentName(): Boolean =
-        studentRepository.getSavedStudents(decryptPass = false).size > 1
 }
