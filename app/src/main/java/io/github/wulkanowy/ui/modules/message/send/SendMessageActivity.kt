@@ -13,6 +13,11 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.navigationBars
+import androidx.core.view.WindowInsetsCompat.Type.statusBars
+import androidx.core.view.updatePadding
 import androidx.core.widget.doOnTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -78,6 +83,24 @@ class SendMessageActivity : BaseActivity<SendMessagePresenter, ActivitySendMessa
         super.onCreate(savedInstanceState)
         setContentView(ActivitySendMessageBinding.inflate(layoutInflater).apply { binding = this }.root)
         setSupportActionBar(binding.sendMessageToolbar)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        binding.sendMessageToolbar.setOnApplyWindowInsetsListener { view, insets ->
+            val inset = insets.getInsets(statusBars())
+            view.updatePadding(
+                bottom = inset.bottom,
+                left = inset.left,
+                top = inset.top,
+                right = inset.right
+            )
+            insets
+        }
+        binding.sendMessageContent.setOnApplyWindowInsetsListener { view, insets ->
+            val inset = insets.getInsets(navigationBars())
+            view.updatePadding(bottom = inset.bottom)
+            insets
+        }
+
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         messageContainer = binding.sendMessageContainer
 

@@ -7,7 +7,13 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.navigationBars
+import androidx.core.view.WindowInsetsCompat.Type.statusBars
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.preference.Preference
@@ -91,6 +97,24 @@ class MainActivity : BaseActivity<MainPresenter, ActivityMainBinding>(), MainVie
         super.onCreate(savedInstanceState)
         setContentView(ActivityMainBinding.inflate(layoutInflater).apply { binding = this }.root)
         setSupportActionBar(binding.mainToolbar)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val statusInset = insets.getInsets(statusBars())
+            binding.mainToolbar.updatePadding(
+                bottom = statusInset.bottom,
+                left = statusInset.left,
+                top = statusInset.top,
+                right = statusInset.right
+            )
+            val navInset = insets.getInsets(navigationBars())
+            binding.mainBottomNav.updatePadding(
+                bottom = navInset.bottom,
+                left = navInset.left,
+                right = navInset.right
+            )
+            WindowInsetsCompat.CONSUMED
+        }
         this.savedInstanceState = savedInstanceState
         messageContainer = binding.mainMessageContainer
         updateHelper.messageContainer = binding.mainFragmentContainer
