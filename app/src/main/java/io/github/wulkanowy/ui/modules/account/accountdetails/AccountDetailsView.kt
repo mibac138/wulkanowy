@@ -16,7 +16,7 @@ interface AccountDetailsView : BaseView {
 
     fun showSemesterDialog(selectedIndex: Int, semesters: List<Semester>)
 
-    fun setCurrentSemesterName(semester: Int, schoolYear: Int)
+    fun setCurrentSemesterName(semester: Semester)
 
     fun notifySemesterChange()
 

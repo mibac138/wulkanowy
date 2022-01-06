@@ -36,8 +36,6 @@ class AccountDetailsPresenter @Inject constructor(
 
     private var selectedIndex = 0
 
-    private var schoolYear = 0
-
     private lateinit var lastError: Throwable
 
     private var studentId: Long? = null
@@ -137,10 +135,9 @@ class AccountDetailsPresenter @Inject constructor(
                         Timber.i("Loading account details view result: Success")
                         studentWithSemesters = it.data
                         val current = it.data!!.semesters.getCurrentOrLast()
-                        schoolYear = current.schoolYear
                         selectedIndex = it.data.semesters.indexOf(current) + 1
                         view?.run {
-                            setCurrentSemesterName(current.semesterId, schoolYear)
+                            setCurrentSemesterName(current)
                             showAccountData(studentWithSemesters!!.student)
                             enableSelectStudentButton(!studentWithSemesters!!.student.isCurrent)
                             showContent(true)

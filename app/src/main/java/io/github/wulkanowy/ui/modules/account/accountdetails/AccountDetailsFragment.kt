@@ -127,8 +127,8 @@ class AccountDetailsFragment :
             .show()
     }
 
-    override fun setCurrentSemesterName(semester: Int, schoolYear: Int) {
-        subtitleString = getString(R.string.grade_subtitle, semester, schoolYear, schoolYear + 1)
+    override fun setCurrentSemesterName(semester: Semester) {
+        subtitleString = getString(R.string.grade_subtitle, semester.semesterId, semester.start.year, semester.end.year)
 
         if (isVisible) {
             (activity as MainView?)?.setViewSubTitle(subtitleString)
