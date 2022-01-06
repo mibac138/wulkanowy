@@ -114,7 +114,7 @@ class AccountDetailsFragment :
 
     override fun showSemesterDialog(selectedIndex: Int, semesters: List<Semester>) {
         val choices =
-            semesters.map { getString(R.string.account_semester, it.semesterName, it.diaryName) }
+            semesters.map { getString(R.string.account_semester, it.diaryName, it.semesterName) }
                 .toTypedArray()
 
         AlertDialog.Builder(requireContext())
