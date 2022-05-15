@@ -88,7 +88,7 @@ class MainPresenter @Inject constructor(
             return
         }
 
-        resourceFlow { studentRepository.getSavedStudents(false) }
+        resourceFlow { studentRepository.getSavedStudents() }
             .logResourceStatus("load student avatar")
             .onResourceSuccess {
                 studentsWitSemesters = it

@@ -1,14 +1,13 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.TeacherDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.networkBoundResource
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AutoRefreshHelper
 import io.github.wulkanowy.utils.getRefreshKey
-import io.github.wulkanowy.utils.init
 import io.github.wulkanowy.utils.uniqueSubtract
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class TeacherRepository @Inject constructor(
     private val teacherDb: TeacherDao,
-    private val sdk: Sdk,
+    private val sdk: SdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 

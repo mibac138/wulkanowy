@@ -41,7 +41,8 @@ import javax.inject.Singleton
         TimetableHeader::class,
         SchoolAnnouncement::class,
         Notification::class,
-        AdminMessage::class
+        AdminMessage::class,
+        StudentAuthData::class,
     ],
     autoMigrations = [
         AutoMigration(from = 44, to = 45),
@@ -178,4 +179,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val notificationDao: NotificationDao
 
     abstract val adminMessagesDao: AdminMessageDao
+
+    abstract val studentAuthDataDao: StudentAuthDataDao
 }

@@ -39,7 +39,6 @@ class LoginStudentSelectPresenterTest {
     private val testStudent by lazy {
         Student(
             email = "test",
-            password = "test123",
             scrapperBaseUrl = "https://fakelog.cf",
             loginType = "AUTO",
             symbol = "",
@@ -59,7 +58,9 @@ class LoginStudentSelectPresenterTest {
             userLoginId = 1,
             isParent = false,
             userName = ""
-        )
+        ).apply {
+            password = "test123"
+        }
     }
 
     private val testException by lazy { RuntimeException("Problem") }

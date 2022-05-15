@@ -1,12 +1,15 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.LuckyNumberDao
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntity
 import io.github.wulkanowy.data.toFirstResult
 import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
+import io.github.wulkanowy.utils.init
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.SpyK
@@ -37,8 +40,14 @@ class LuckyNumberRemoteTest {
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
+        val sdkFactory = mockk<SdkFactory>()
+        val studentSlot = slot<Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
-        luckyNumberRepository = LuckyNumberRepository(luckyNumberDb, sdk)
+        luckyNumberRepository = LuckyNumberRepository(luckyNumberDb, sdkFactory)
     }
 
     @Test

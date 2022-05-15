@@ -1,12 +1,12 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.ExamDao
 import io.github.wulkanowy.data.db.entities.Exam
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.networkBoundResource
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
@@ -17,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class ExamRepository @Inject constructor(
     private val examDb: ExamDao,
-    private val sdk: Sdk,
+    private val sdk: SdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 

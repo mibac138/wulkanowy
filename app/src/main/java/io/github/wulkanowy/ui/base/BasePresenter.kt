@@ -34,10 +34,10 @@ open class BasePresenter<T : BaseView>(
 
         presenterScope.launch {
             runCatching {
-                val student = studentRepository.getCurrentStudent(false)
+                val student = studentRepository.getCurrentStudent()
                 studentRepository.logoutStudent(student)
 
-                val students = studentRepository.getSavedStudents(false)
+                val students = studentRepository.getSavedStudents()
                 if (students.isNotEmpty()) {
                     Timber.i("Switching current student")
                     studentRepository.switchStudent(students[0])

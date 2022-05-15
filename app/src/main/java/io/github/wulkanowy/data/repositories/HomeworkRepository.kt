@@ -1,12 +1,12 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.HomeworkDao
 import io.github.wulkanowy.data.db.entities.Homework
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.networkBoundResource
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.*
 import kotlinx.coroutines.sync.Mutex
 import java.time.LocalDate
@@ -16,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class HomeworkRepository @Inject constructor(
     private val homeworkDb: HomeworkDao,
-    private val sdk: Sdk,
+    private val sdk: SdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 

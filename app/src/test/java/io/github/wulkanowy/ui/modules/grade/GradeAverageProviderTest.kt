@@ -53,7 +53,6 @@ class GradeAverageProviderTest {
         privateKey = "",
         isParent = false,
         email = "",
-        password = "",
         symbol = "",
         studentId = 101,
         userLoginId = 0,

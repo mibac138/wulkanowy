@@ -1,9 +1,11 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.GradePartialStatisticsDao
 import io.github.wulkanowy.data.db.dao.GradePointsStatisticsDao
 import io.github.wulkanowy.data.db.dao.GradeSemesterStatisticsDao
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.toFirstResult
@@ -13,6 +15,7 @@ import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.GradeStatisticsItem
 import io.github.wulkanowy.sdk.pojo.GradeStatisticsSubject
 import io.github.wulkanowy.utils.AutoRefreshHelper
+import io.github.wulkanowy.utils.init
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.SpyK
@@ -49,12 +52,18 @@ class GradeStatisticsRepositoryTest {
     fun setUp() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
+        val sdkFactory = mockk<SdkFactory>()
+        val studentSlot = slot<Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
         gradeStatisticsRepository = GradeStatisticsRepository(
             gradePartialStatisticsDb = gradePartialStatisticsDb,
             gradePointsStatisticsDb = gradePointsStatisticsDb,
             gradeSemesterStatisticsDb = gradeSemesterStatisticsDb,
-            sdk = sdk,
+            sdk = sdkFactory,
             refreshHelper = refreshHelper,
         )
     }

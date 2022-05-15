@@ -1,5 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.TimetableAdditionalDao
 import io.github.wulkanowy.data.db.dao.TimetableDao
 import io.github.wulkanowy.data.db.dao.TimetableHeaderDao
@@ -7,7 +8,6 @@ import io.github.wulkanowy.data.db.entities.*
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.networkBoundResource
 import io.github.wulkanowy.data.pojos.TimetableFull
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.services.alarm.TimetableNotificationSchedulerHelper
 import io.github.wulkanowy.utils.*
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +22,7 @@ class TimetableRepository @Inject constructor(
     private val timetableDb: TimetableDao,
     private val timetableAdditionalDb: TimetableAdditionalDao,
     private val timetableHeaderDb: TimetableHeaderDao,
-    private val sdk: Sdk,
+    private val sdk: SdkFactory,
     private val schedulerHelper: TimetableNotificationSchedulerHelper,
     private val refreshHelper: AutoRefreshHelper,
 ) {

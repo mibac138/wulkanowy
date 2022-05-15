@@ -9,7 +9,6 @@ fun List<SdkStudent>.mapToEntities(password: String = "", colors: List<Long>) = 
     StudentWithSemesters(
         student = Student(
             email = it.email,
-            password = password,
             isParent = it.isParent,
             symbol = it.symbol,
             studentId = it.studentId,
@@ -31,6 +30,7 @@ fun List<SdkStudent>.mapToEntities(password: String = "", colors: List<Long>) = 
             loginMode = it.loginMode.name,
         ).apply {
             avatarColor = colors.random()
+            this.password = password
         },
         semesters = it.semesters.mapToEntities(it.studentId)
     )

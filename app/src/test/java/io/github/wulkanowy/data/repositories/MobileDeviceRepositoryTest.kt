@@ -1,7 +1,9 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.MobileDeviceDao
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.toFirstResult
@@ -10,6 +12,7 @@ import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Device
 import io.github.wulkanowy.utils.AutoRefreshHelper
+import io.github.wulkanowy.utils.init
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.SpyK
@@ -47,8 +50,14 @@ class MobileDeviceRepositoryTest {
     fun initTest() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
+        val sdkFactory = mockk<SdkFactory>()
+        val studentSlot = slot<Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
-        mobileDeviceRepository = MobileDeviceRepository(mobileDeviceDb, sdk, refreshHelper)
+        mobileDeviceRepository = MobileDeviceRepository(mobileDeviceDb, sdkFactory, refreshHelper)
     }
 
     @Test

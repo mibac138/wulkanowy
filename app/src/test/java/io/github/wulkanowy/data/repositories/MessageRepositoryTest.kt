@@ -1,12 +1,14 @@
 package io.github.wulkanowy.data.repositories
 
 import android.content.Context
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.SharedPrefProvider
 import io.github.wulkanowy.data.db.dao.MessageAttachmentDao
 import io.github.wulkanowy.data.db.dao.MessagesDao
 import io.github.wulkanowy.data.db.entities.Message
 import io.github.wulkanowy.data.db.entities.MessageWithAttachment
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.enums.MessageFolder
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.toFirstResult
@@ -16,6 +18,7 @@ import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Folder
 import io.github.wulkanowy.utils.AutoRefreshHelper
 import io.github.wulkanowy.utils.Status
+import io.github.wulkanowy.utils.init
 import io.github.wulkanowy.utils.status
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -65,11 +68,17 @@ class MessageRepositoryTest {
     fun setUp() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
+        val sdkFactory = mockk<SdkFactory>()
+        val studentSlot = slot<Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
         repository = MessageRepository(
             messagesDb = messageDb,
             messageAttachmentDao = messageAttachmentDao,
-            sdk = sdk,
+            sdk = sdkFactory,
             context = context,
             refreshHelper = refreshHelper,
             sharedPrefProvider = sharedPrefProvider,

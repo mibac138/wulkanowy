@@ -1,5 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.MobileDeviceDao
 import io.github.wulkanowy.data.db.entities.MobileDevice
 import io.github.wulkanowy.data.db.entities.Semester
@@ -8,10 +9,8 @@ import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.mappers.mapToMobileDeviceToken
 import io.github.wulkanowy.data.networkBoundResource
 import io.github.wulkanowy.data.pojos.MobileDeviceToken
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AutoRefreshHelper
 import io.github.wulkanowy.utils.getRefreshKey
-import io.github.wulkanowy.utils.init
 import io.github.wulkanowy.utils.uniqueSubtract
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
@@ -20,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class MobileDeviceRepository @Inject constructor(
     private val mobileDb: MobileDeviceDao,
-    private val sdk: Sdk,
+    private val sdk: SdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 

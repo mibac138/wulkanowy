@@ -57,7 +57,6 @@ fun getStudentEntity(mode: Sdk.Mode = Sdk.Mode.API) = Student(
     loginMode = mode.name,
     loginType = "STANDARD",
     mobileBaseUrl = "",
-    password = "",
     privateKey = "",
     registrationDate = now(),
     schoolName = "",

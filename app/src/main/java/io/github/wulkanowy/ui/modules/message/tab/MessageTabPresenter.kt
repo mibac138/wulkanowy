@@ -121,7 +121,7 @@ class MessageTabPresenter @Inject constructor(
             }
 
             runCatching {
-                val student = studentRepository.getCurrentStudent(true)
+                val student = studentRepository.getCurrentStudent()
                 val mailbox = mailboxRepository.getMailbox(student)
                 messageRepository.deleteMessages(student, mailbox, messageList)
             }

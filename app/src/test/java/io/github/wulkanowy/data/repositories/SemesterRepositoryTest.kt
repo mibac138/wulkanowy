@@ -1,19 +1,18 @@
 package io.github.wulkanowy.data.repositories
 
 import io.github.wulkanowy.TestDispatchersProvider
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.SemesterDao
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.getSemesterEntity
 import io.github.wulkanowy.getSemesterPojo
 import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.coEvery
-import io.mockk.coVerify
+import io.github.wulkanowy.utils.init
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.SpyK
-import io.mockk.just
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -36,8 +35,14 @@ class SemesterRepositoryTest {
     @Before
     fun initTest() {
         MockKAnnotations.init(this)
+        val sdkFactory = mockk<SdkFactory>()
+        val studentSlot = slot<Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
-        semesterRepository = SemesterRepository(semesterDb, sdk, TestDispatchersProvider())
+        semesterRepository = SemesterRepository(semesterDb, sdkFactory, TestDispatchersProvider())
     }
 
     @Test

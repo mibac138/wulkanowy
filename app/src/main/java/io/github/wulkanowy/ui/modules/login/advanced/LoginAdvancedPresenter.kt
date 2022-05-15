@@ -142,19 +142,19 @@ class LoginAdvancedPresenter @Inject constructor(
                     is Resource.Success -> {
                         analytics.logEvent(
                             "registration_form",
-                        "success" to true,
-                        "students" to it.data.size,
-                        "error" to "No error"
-                    )
-                    val loginData = LoginData(
-                        login = view?.formUsernameValue.orEmpty().trim(),
-                        password = view?.formPassValue.orEmpty().trim(),
-                        baseUrl = view?.formHostValue.orEmpty().trim()
-                    )
-                    when (it.data.size) {
-                        0 -> view?.navigateToSymbol(loginData)
-                        else -> view?.navigateToStudentSelect(it.data)
-                    }
+                            "success" to true,
+                            "students" to it.data.size,
+                            "error" to "No error"
+                        )
+                        val loginData = LoginData(
+                            login = view?.formUsernameValue.orEmpty().trim(),
+                            password = view?.formPassValue.orEmpty().trim(),
+                            baseUrl = view?.formHostValue.orEmpty().trim()
+                        )
+                        when (it.data.size) {
+                            0 -> view?.navigateToSymbol(loginData)
+                            else -> view?.navigateToStudentSelect(it.data)
+                        }
                     }
                     is Resource.Error -> {
                         analytics.logEvent(

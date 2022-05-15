@@ -1,15 +1,18 @@
 package io.github.wulkanowy.data.repositories
 
 import io.github.wulkanowy.TestDispatchersProvider
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.dao.StudentDao
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Student
 import io.github.wulkanowy.utils.AppInfo
+import io.github.wulkanowy.utils.init
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -18,7 +21,7 @@ import org.junit.Test
 class StudentTest {
 
     @MockK
-    private lateinit var mockSdk: Sdk
+    private lateinit var sdkFactory: SdkFactory
 
     @MockK
     private lateinit var studentDb: StudentDao
@@ -26,27 +29,35 @@ class StudentTest {
     @MockK
     private lateinit var semesterDb: SemesterDao
 
+    @MockK
+    private lateinit var authDb: AuthDataRepository
+
     private lateinit var studentRepository: StudentRepository
 
     @Before
     fun initApi() {
         MockKAnnotations.init(this)
         studentRepository = StudentRepository(
-            context = mockk(),
-            dispatchers = TestDispatchersProvider(),
             studentDb = studentDb,
             semesterDb = semesterDb,
-            sdk = mockSdk,
+            sdk = sdkFactory,
             appInfo = AppInfo(),
-            appDatabase = mockk()
+            appDatabase = mockk(),
+            authDb = authDb,
         )
     }
 
     @Test
     fun testRemoteAll() {
-        coEvery { mockSdk.getStudentsFromScrapper(any(), any(), any(), any()) } returns listOf(
+        val sdk = mockk<Sdk>()
+        coEvery { sdk.getStudentsFromScrapper(any(), any(), any(), any()) } returns listOf(
             getStudent("test")
         )
+        val studentSlot = slot<io.github.wulkanowy.data.db.entities.Student>()
+        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+            sdk.init(studentSlot.captured)
+        }
+        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
         val students = runBlocking { studentRepository.getStudentsScrapper("", "", "http://fakelog.cf", "") }
         assertEquals(1, students.size)

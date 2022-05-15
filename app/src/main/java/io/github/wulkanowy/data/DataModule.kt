@@ -16,10 +16,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.wulkanowy.data.api.AdminMessageService
 import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.SharedPrefProvider
-import io.github.wulkanowy.data.db.dao.PasswordDao
-import io.github.wulkanowy.data.db.dao.PasswordDaoImpl
 import io.github.wulkanowy.data.repositories.PreferencesRepository
-import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AppInfo
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -35,18 +32,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 internal class DataModule {
-
-    @Singleton
-    @Provides
-    fun provideSdk(chuckerInterceptor: ChuckerInterceptor) =
-        Sdk().apply {
-            androidVersion = android.os.Build.VERSION.RELEASE
-            buildTag = android.os.Build.MODEL
-            setSimpleHttpLogger { Timber.d(it) }
-
-            // for debug only
-            addInterceptor(chuckerInterceptor, network = true)
-        }
 
     @Singleton
     @Provides
@@ -118,14 +103,13 @@ internal class DataModule {
 
     @Singleton
     @Provides
-    fun providePasswordDao(@ApplicationContext context: Context): PasswordDao =
-        PasswordDaoImpl(context)
-
-    @Singleton
-    @Provides
     fun provideJson() = Json {
         ignoreUnknownKeys = true
     }
+
+    @Singleton
+    @Provides
+    fun provideStudentAuthDataDao(database: AppDatabase) = database.studentAuthDataDao
 
     @Singleton
     @Provides

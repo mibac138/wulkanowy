@@ -1,12 +1,11 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.StudentInfoDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntity
 import io.github.wulkanowy.data.networkBoundResource
-import io.github.wulkanowy.sdk.Sdk
-import io.github.wulkanowy.utils.init
 import kotlinx.coroutines.sync.Mutex
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,7 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class StudentInfoRepository @Inject constructor(
     private val studentInfoDao: StudentInfoDao,
-    private val sdk: Sdk
+    private val sdk: SdkFactory,
 ) {
 
     private val saveFetchResultMutex = Mutex()

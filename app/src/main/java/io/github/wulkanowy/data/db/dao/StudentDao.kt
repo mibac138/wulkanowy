@@ -20,14 +20,23 @@ abstract class StudentDao {
     @Update(entity = Student::class)
     abstract suspend fun update(studentNickAndAvatar: StudentNickAndAvatar)
 
+    @Update
+    abstract suspend fun update(student: Student)
+
     @Query("SELECT * FROM Students WHERE is_current = 1")
     abstract suspend fun loadCurrent(): Student?
 
     @Query("SELECT * FROM Students WHERE id = :id")
     abstract suspend fun loadById(id: Long): Student?
 
+    @Query("SELECT * FROM Students WHERE email = :email")
+    abstract suspend fun loadByEmail(email: String): List<Student>
+
     @Query("SELECT * FROM Students")
     abstract suspend fun loadAll(): List<Student>
+
+    @Query("SELECT EXISTS(SELECT * FROM Students WHERE email = :email)")
+    abstract suspend fun isEmailUsed(email: String): Boolean
 
     @Transaction
     @Query("SELECT * FROM Students")

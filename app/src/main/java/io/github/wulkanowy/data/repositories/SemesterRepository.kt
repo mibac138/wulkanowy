@@ -1,5 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -14,8 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class SemesterRepository @Inject constructor(
     private val semesterDb: SemesterDao,
-    private val sdk: Sdk,
-    private val dispatchers: DispatchersProvider
+    private val sdk: SdkFactory,
+    private val dispatchers: DispatchersProvider,
 ) {
 
     suspend fun getSemesters(

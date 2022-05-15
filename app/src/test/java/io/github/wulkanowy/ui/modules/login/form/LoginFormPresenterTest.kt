@@ -106,7 +106,6 @@ class LoginFormPresenterTest {
     fun loginTest() {
         val studentTest = Student(
             email = "test@",
-            password = "123",
             scrapperBaseUrl = "https://fakelog.cf/?email",
             loginType = "AUTO",
             studentName = "",
@@ -126,7 +125,9 @@ class LoginFormPresenterTest {
             schoolShortName = "",
             isParent = false,
             userName = ""
-        )
+        ).apply {
+            password = "123"
+        }
         coEvery { repository.getStudentsScrapper(any(), any(), any(), any()) } returns listOf(
             StudentWithSemesters(studentTest, emptyList())
         )
