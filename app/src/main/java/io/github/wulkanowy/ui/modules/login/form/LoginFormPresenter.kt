@@ -85,7 +85,7 @@ class LoginFormPresenter @Inject constructor(
     }
 
     fun onSignInClick() {
-        val email = view?.formUsernameValue.orEmpty().trim()
+        val email = view?.formUsernameValue.orEmpty().trim().lowercase()
         val password = view?.formPassValue.orEmpty().trim()
         val host = view?.formHostValue.orEmpty().trim()
         val symbol = view?.formHostSymbol.orEmpty().trim()
