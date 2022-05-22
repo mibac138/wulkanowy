@@ -1,6 +1,8 @@
 package io.github.wulkanowy.utils
 
 import android.content.res.Resources
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import io.github.wulkanowy.R
 import io.github.wulkanowy.sdk.exception.FeatureNotAvailableException
 import io.github.wulkanowy.sdk.scrapper.exception.FeatureDisabledException
@@ -19,7 +21,12 @@ import java.security.cert.CertificateExpiredException
 import java.security.cert.CertificateNotYetValidException
 import javax.net.ssl.SSLHandshakeException
 
-fun Resources.getErrorString(error: Throwable): String = when (error) {
+@Composable
+fun Throwable.resString() = stringResource(getErrorStringId())
+
+fun Resources.getErrorString(error: Throwable): String = getString(error.getErrorStringId())
+
+private fun Throwable.getErrorStringId(): Int = when (this) {
     is UnknownHostException -> R.string.error_no_internet
     is SocketException,
     is SocketTimeoutException,
@@ -34,11 +41,11 @@ fun Resources.getErrorString(error: Throwable): String = when (error) {
     is VulcanException -> R.string.error_unknown_uonet
     is ScrapperException -> R.string.error_unknown_app
     is SSLHandshakeException -> when {
-        error.isCausedByCertificateNotValidNow() -> R.string.error_invalid_device_datetime
+        isCausedByCertificateNotValidNow() -> R.string.error_invalid_device_datetime
         else -> R.string.error_timeout
     }
     else -> R.string.error_unknown
-}.let { getString(it) }
+}
 
 fun Throwable.isShouldBeReported(): Boolean = when (this) {
     is UnknownHostException,

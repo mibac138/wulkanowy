@@ -82,6 +82,7 @@ class AccountQuickDialog : BaseDialogFragment<DialogAccountQuickBinding>(), Acco
 
     override fun recreateMainView() {
         activity?.recreate()
+        activity?.viewModelStore?.clear()
     }
 
     override fun openAccountView() {

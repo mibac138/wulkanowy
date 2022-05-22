@@ -47,6 +47,24 @@ fun <T, U> Resource<T>.mapData(block: (T) -> U) = when (this) {
     is Resource.Error -> Resource.Error(this.error)
 }
 
+fun <T> Resource<T>.onData(block: (T) -> Unit) = also {
+    when (this) {
+        is Resource.Success -> block(this.data)
+        is Resource.Intermediate -> block(this.data)
+        is Resource.Loading -> Unit
+        is Resource.Error -> Unit
+    }
+}
+
+fun <T> Resource<T>.onError(block: (Throwable) -> Unit) = also {
+    when (this) {
+        is Resource.Success -> Unit
+        is Resource.Intermediate -> Unit
+        is Resource.Loading -> Unit
+        is Resource.Error -> block(this.error)
+    }
+}
+
 fun <T> Flow<Resource<T>>.logResourceStatus(name: String, showData: Boolean = false) = onEach {
     val description = when (it) {
         is Resource.Loading -> "started"
@@ -101,6 +119,11 @@ fun <T> Flow<Resource<T>>.onResourceNotLoading(block: () -> Unit) = onEach {
 }
 
 suspend fun <T> Flow<Resource<T>>.toFirstResult() = filter { it !is Resource.Loading }.first()
+
+suspend fun <T> Flow<Resource<T>>.untilFirstResult() = transformWhile {
+    emit(it)
+    it is Resource.Loading
+}
 
 suspend fun <T> Flow<Resource<T>>.waitForResult() = takeWhile { it is Resource.Loading }.collect()
 
