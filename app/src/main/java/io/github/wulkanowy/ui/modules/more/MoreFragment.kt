@@ -19,6 +19,7 @@ import io.github.wulkanowy.ui.modules.mobiledevice.MobileDeviceFragment
 import io.github.wulkanowy.ui.modules.note.NoteFragment
 import io.github.wulkanowy.ui.modules.schoolandteachers.SchoolAndTeachersFragment
 import io.github.wulkanowy.ui.modules.schoolannouncement.SchoolAnnouncementFragment
+import io.github.wulkanowy.ui.modules.schoolannouncement.SchoolAnnouncementFragmentCompose
 import io.github.wulkanowy.ui.modules.settings.SettingsFragment
 import io.github.wulkanowy.utils.getCompatDrawable
 import javax.inject.Inject
@@ -114,7 +115,7 @@ class MoreFragment : BaseFragment<FragmentMoreBinding>(R.layout.fragment_more), 
     }
 
     override fun openSchoolAnnouncementView() {
-        (activity as? MainActivity)?.pushView(SchoolAnnouncementFragment.newInstance())
+        (activity as? MainActivity)?.pushView(SchoolAnnouncementFragmentCompose.newInstance())
     }
 
     override fun openConferencesView() {
