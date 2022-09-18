@@ -199,7 +199,7 @@ class MainPresenter @Inject constructor(
             && appInfo.buildFlavor == "play"
         ) {
             presenterScope.launch {
-                val student = runCatching { studentRepository.getCurrentStudent(false) }
+                val student = runCatching { studentRepository.getCurrentStudent() }
                     .onFailure { Timber.e(it) }
                     .getOrElse { return@launch }
 

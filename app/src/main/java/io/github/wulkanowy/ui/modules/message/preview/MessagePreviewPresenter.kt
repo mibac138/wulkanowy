@@ -186,7 +186,7 @@ class MessagePreviewPresenter @Inject constructor(
 
         presenterScope.launch {
             runCatching {
-                val student = studentRepository.getCurrentStudent(decryptPass = true)
+                val student = studentRepository.getCurrentStudent()
                 val mailbox = mailboxRepository.getMailbox(student)
                 messageRepository.deleteMessage(student, mailbox, message!!)
             }
