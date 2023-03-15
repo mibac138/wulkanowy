@@ -210,7 +210,6 @@ class GetMailboxByStudentUseCaseTest {
         loginMode = Sdk.Mode.API.name,
         loginType = Sdk.ScrapperLoginType.STANDARD.name,
         mobileBaseUrl = "",
-        password = "",
         privateKey = "",
         registrationDate = Instant.now(),
         schoolName = "",

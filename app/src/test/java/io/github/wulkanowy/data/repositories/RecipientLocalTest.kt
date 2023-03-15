@@ -2,7 +2,6 @@ package io.github.wulkanowy.data.repositories
 
 import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.dao.RecipientDao
-import io.github.wulkanowy.data.db.entities.ReportingUnit
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.getMailboxEntity
@@ -68,12 +67,12 @@ class RecipientLocalTest {
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
         val sdkFactory = mockk<SdkFactory>()
         val studentSlot = slot<Student>()
-        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
+        coEvery { sdkFactory.init(capture(studentSlot)) } coAnswers {
             sdk.init(studentSlot.captured)
         }
-        coEvery { sdkFactory.initUnauthorized() } returns sdk
+        coEvery { sdkFactory.initUnauthorized() } returns mockk()
 
-        recipientRepository = RecipientRepository(recipientDb, sdk, refreshHelper)
+        recipientRepository = RecipientRepository(recipientDb, sdkFactory, refreshHelper)
     }
 
     @Test
