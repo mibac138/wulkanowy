@@ -42,17 +42,16 @@ class MainPresenter @Inject constructor(
 
     private var studentsWitSemesters: List<StudentWithSemesters>? = null
 
-    private val rootDestinationTypeList = listOf(
-        Destination.Type.DASHBOARD,
-        Destination.Type.GRADE,
-        Destination.Type.ATTENDANCE,
-        Destination.Type.TIMETABLE,
-        Destination.Type.MORE
-    )
+    private val rootAppMenuItems = preferencesRepository.appMenuItemOrder
+        .sortedBy { it.order }
+        .take(4)
+
+    private val rootDestinationTypeList = rootAppMenuItems.map { it.destinationType }
+        .plus(Destination.Type.MORE)
 
     private val Destination?.startMenuIndex
         get() = when {
-            this == null -> preferencesRepository.startMenuIndex
+            this == null -> 0
             destinationType in rootDestinationTypeList -> {
                 rootDestinationTypeList.indexOf(destinationType)
             }
@@ -69,7 +68,7 @@ class MainPresenter @Inject constructor(
             if (it == initDestination?.destinationType) initDestination else it.defaultDestination
         }
 
-        view.initView(startMenuIndex, destinations)
+        view.initView(startMenuIndex, rootAppMenuItems, destinations)
         if (initDestination != null && startMenuIndex == 4) {
             view.openMoreDestination(initDestination)
         }
@@ -139,12 +138,9 @@ class MainPresenter @Inject constructor(
         return true
     }
 
-    fun onBackPressed(default: () -> Unit) {
+    fun onBackPressed() {
         Timber.i("Back pressed in main view")
-        view?.run {
-            if (isRootView) default()
-            else popView()
-        }
+        view?.popView()
     }
 
     fun onTabSelected(index: Int, wasSelected: Boolean): Boolean {

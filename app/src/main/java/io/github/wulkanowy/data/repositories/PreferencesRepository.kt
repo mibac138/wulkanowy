@@ -10,17 +10,17 @@ import io.github.wulkanowy.R
 import io.github.wulkanowy.data.enums.*
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.grade.GradeAverageMode
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.github.wulkanowy.ui.modules.settings.appearance.menuorder.AppMenuItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PreferencesRepository @Inject constructor(
     @ApplicationContext val context: Context,
@@ -28,9 +28,6 @@ class PreferencesRepository @Inject constructor(
     private val flowSharedPref: FlowSharedPreferences,
     private val json: Json,
 ) {
-
-    val startMenuIndex: Int
-        get() = getString(R.string.pref_key_start_menu, R.string.pref_default_startup).toInt()
 
     val isShowPresent: Boolean
         get() = getBoolean(
@@ -316,6 +313,30 @@ class PreferencesRepository @Inject constructor(
             putBoolean(context.getString(R.string.pref_key_ads_enabled), value)
         }
 
+    var appMenuItemOrder: List<AppMenuItem>
+        get() {
+            val value = sharedPref.getString(PREF_KEY_APP_MENU_ITEM_ORDER, null)
+                ?: return AppMenuItem.defaultAppMenuItemList
+
+            return json.decodeFromString(value)
+        }
+        set(value) = sharedPref.edit {
+            putString(
+                PREF_KEY_APP_MENU_ITEM_ORDER,
+                json.encodeToString(value)
+            )
+        }
+
+    var installationId: String
+        get() = sharedPref.getString(PREF_KEY_INSTALLATION_ID, null).orEmpty()
+        private set(value) = sharedPref.edit { putString(PREF_KEY_INSTALLATION_ID, value) }
+
+    init {
+        if (installationId.isEmpty()) {
+            installationId = UUID.randomUUID().toString()
+        }
+    }
+
     private fun getLong(id: Int, default: Int) = getLong(context.getString(id), default)
 
     private fun getLong(id: String, default: Int) =
@@ -331,23 +352,15 @@ class PreferencesRepository @Inject constructor(
     private fun getBoolean(id: String, default: Int) =
         sharedPref.getBoolean(id, context.resources.getBoolean(default))
 
-    private fun getBoolean(id: Int, default: Boolean) =
-        sharedPref.getBoolean(context.getString(id), default)
-
     private companion object {
-
+        private const val PREF_KEY_APP_MENU_ITEM_ORDER = "app_menu_item_order"
+        private const val PREF_KEY_INSTALLATION_ID = "installation_id"
         private const val PREF_KEY_DASHBOARD_ITEMS_POSITION = "dashboard_items_position"
-
         private const val PREF_KEY_IN_APP_REVIEW_COUNT = "in_app_review_count"
-
         private const val PREF_KEY_IN_APP_REVIEW_DATE = "in_app_review_date"
-
         private const val PREF_KEY_IN_APP_REVIEW_DONE = "in_app_review_done"
-
         private const val PREF_KEY_APP_SUPPORT_SHOWN = "app_support_shown"
-
         private const val PREF_KEY_PERSONALIZED_ADS_ENABLED = "personalized_ads_enabled"
-
         private const val PREF_KEY_ADMIN_DISMISSED_MESSAGE_IDS = "admin_message_dismissed_ids"
     }
 }

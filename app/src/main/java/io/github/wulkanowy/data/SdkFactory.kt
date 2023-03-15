@@ -4,6 +4,7 @@ import com.chuckerteam.chucker.api.ChuckerInterceptor
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.repositories.AuthDataRepository
 import io.github.wulkanowy.sdk.Sdk
+import io.github.wulkanowy.utils.RemoteConfigHelper
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +13,9 @@ import javax.inject.Singleton
 class SdkFactory @Inject constructor(
     private val authRepo: AuthDataRepository,
     private val chuckerInterceptor: ChuckerInterceptor,
+    private val remoteConfig: RemoteConfigHelper,
 ) {
+
     suspend fun init(student: Student): Sdk = initUnauthorized().apply {
         email = student.email
         password = authRepo.getPassword(student)
@@ -20,6 +23,7 @@ class SdkFactory @Inject constructor(
         schoolSymbol = student.schoolSymbol
         studentId = student.studentId
         classId = student.classId
+        userAgentTemplate = remoteConfig.userAgentTemplate
 
         if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
             scrapperBaseUrl = student.scrapperBaseUrl
