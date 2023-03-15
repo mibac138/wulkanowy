@@ -35,25 +35,26 @@ class StudentRepository @Inject constructor(
         pin: String,
         symbol: String,
         token: String
-    ): List<StudentWithSemesters> =
-        sdk.initUnauthorized().getStudentsFromMobileApi(token, pin, symbol, "")
-            .mapToEntities(colors = appInfo.defaultColorsForAvatar)
+    ): List<StudentWithSemesters> = sdk.initUnauthorized()
+        .getStudentsFromMobileApi(token, pin, symbol, "")
+        .mapToEntities(colors = appInfo.defaultColorsForAvatar)
 
     suspend fun getStudentsScrapper(
         email: String,
         password: String,
         scrapperBaseUrl: String,
         symbol: String
-    ): List<StudentWithSemesters> =
-        sdk.initUnauthorized().getStudentsFromScrapper(email, password, scrapperBaseUrl, symbol)
-            .mapToEntities(password, appInfo.defaultColorsForAvatar)
+    ): List<StudentWithSemesters> = sdk.initUnauthorized()
+        .getStudentsFromScrapper(email, password, scrapperBaseUrl, symbol)
+        .mapToEntities(password, appInfo.defaultColorsForAvatar)
 
     suspend fun getUserSubjectsFromScrapper(
         email: String,
         password: String,
         scrapperBaseUrl: String,
         symbol: String
-    ): RegisterUser = sdk.getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, symbol)
+    ): RegisterUser = sdk.initUnauthorized()
+        .getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, symbol)
         .mapToPojo(password)
 
     suspend fun getStudentsHybrid(
@@ -61,13 +62,15 @@ class StudentRepository @Inject constructor(
         password: String,
         scrapperBaseUrl: String,
         symbol: String
-    ): List<StudentWithSemesters> =
-        sdk.initUnauthorized().getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
-            .mapToEntities(password, appInfo.defaultColorsForAvatar)
+    ): List<StudentWithSemesters> = sdk.initUnauthorized()
+        .getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
+        .mapToEntities(password, appInfo.defaultColorsForAvatar)
 
-    suspend fun getSavedStudents(): List<StudentWithSemesters> = studentDb.loadStudentsWithSemesters()
+    suspend fun getSavedStudents(): List<StudentWithSemesters> =
+        studentDb.loadStudentsWithSemesters()
 
-    suspend fun getSavedStudentById(id: Long): StudentWithSemesters? = studentDb.loadStudentWithSemestersById(id)
+    suspend fun getSavedStudentById(id: Long): StudentWithSemesters? =
+        studentDb.loadStudentWithSemestersById(id)
 
     suspend fun getStudentById(id: Long): Student =
         studentDb.loadById(id) ?: throw NoCurrentStudentException()

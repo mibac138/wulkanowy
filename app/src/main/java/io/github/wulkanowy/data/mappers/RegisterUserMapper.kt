@@ -78,10 +78,10 @@ fun RegisterStudent.mapToStudentWithSemesters(
         mobileBaseUrl = "",
         certificateKey = "",
         privateKey = "",
-        password = user.password,
         isCurrent = false,
         registrationDate = Instant.now(),
     ).apply {
+        password = user.password
         avatarColor = colors.random()
     },
 )
