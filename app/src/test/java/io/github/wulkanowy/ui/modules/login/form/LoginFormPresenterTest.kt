@@ -2,12 +2,21 @@ package io.github.wulkanowy.ui.modules.login.form
 
 import io.github.wulkanowy.MainCoroutineRule
 import io.github.wulkanowy.data.pojos.RegisterUser
+import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
+import io.github.wulkanowy.domain.adminmessage.GetAppropriateAdminMessageUseCase
+import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.scrapper.Scrapper
 import io.github.wulkanowy.ui.modules.login.LoginErrorHandler
 import io.github.wulkanowy.utils.AnalyticsHelper
-import io.mockk.*
+import io.github.wulkanowy.utils.AppInfo
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
+import io.mockk.verify
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -30,13 +39,23 @@ class LoginFormPresenterTest {
     @MockK(relaxed = true)
     lateinit var analytics: AnalyticsHelper
 
+    @MockK
+    lateinit var appInfo: AppInfo
+
+    @MockK
+    lateinit var getAppropriateAdminMessageUseCase: GetAppropriateAdminMessageUseCase
+
+    @MockK
+    lateinit var preferencesRepository: PreferencesRepository
+
     private lateinit var presenter: LoginFormPresenter
 
     private val registerUser = RegisterUser(
         email = "",
         password = "",
         login = "",
-        baseUrl = "",
+        scrapperBaseUrl = "",
+        loginMode = Sdk.Mode.HEBE,
         loginType = Scrapper.LoginType.AUTO,
         symbols = listOf(),
     )
@@ -54,8 +73,16 @@ class LoginFormPresenterTest {
         every { loginFormView.setErrorPassInvalid(any()) } just Runs
         every { loginFormView.setErrorPassRequired(any()) } just Runs
         every { loginFormView.setErrorUsernameRequired() } just Runs
+        every { appInfo.isDebug } returns false
 
-        presenter = LoginFormPresenter(repository, errorHandler, analytics)
+        presenter = LoginFormPresenter(
+            studentRepository = repository,
+            loginErrorHandler = errorHandler,
+            appInfo = appInfo,
+            analytics = analytics,
+            getAppropriateAdminMessageUseCase = getAppropriateAdminMessageUseCase,
+            preferencesRepository = preferencesRepository,
+        )
         presenter.onAttachView(loginFormView)
     }
 
@@ -113,7 +140,7 @@ class LoginFormPresenterTest {
     @Test
     fun loginTest() {
         coEvery {
-            repository.getUserSubjectsFromScrapper(any(), any(), any(), any())
+            repository.getUserSubjectsFromScrapper(any(), any(), any(), any(), any())
         } returns registerUser
 
         every { loginFormView.formUsernameValue } returns "@"
@@ -132,7 +159,7 @@ class LoginFormPresenterTest {
     @Test
     fun loginEmptyTest() {
         coEvery {
-            repository.getUserSubjectsFromScrapper(any(), any(), any(), any())
+            repository.getUserSubjectsFromScrapper(any(), any(), any(), any(), any())
         } returns registerUser
         every { loginFormView.formUsernameValue } returns "@"
         every { loginFormView.formPassValue } returns "123456"
@@ -150,7 +177,7 @@ class LoginFormPresenterTest {
     @Test
     fun loginEmptyTwiceTest() {
         coEvery {
-            repository.getUserSubjectsFromScrapper(any(), any(), any(), any())
+            repository.getUserSubjectsFromScrapper(any(), any(), any(), any(), any())
         } returns registerUser
         every { loginFormView.formUsernameValue } returns "@"
         every { loginFormView.formPassValue } returns "123456"
@@ -170,12 +197,7 @@ class LoginFormPresenterTest {
     fun loginErrorTest() {
         val testException = IOException("test")
         coEvery {
-            repository.getUserSubjectsFromScrapper(
-                any(),
-                any(),
-                any(),
-                any()
-            )
+            repository.getUserSubjectsFromScrapper(any(), any(), any(), any(), any())
         } throws testException
         every { loginFormView.formUsernameValue } returns "@"
         every { loginFormView.formPassValue } returns "123456"

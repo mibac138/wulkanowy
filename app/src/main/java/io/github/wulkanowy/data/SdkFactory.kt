@@ -25,18 +25,18 @@ class SdkFactory @Inject constructor(
         classId = student.classId
         userAgentTemplate = remoteConfig.userAgentTemplate
 
-        if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
+        if (Sdk.Mode.valueOf(student.loginMode) == Sdk.Mode.HEBE) {
+            mobileBaseUrl = student.mobileBaseUrl
+        } else {
             scrapperBaseUrl = student.scrapperBaseUrl
+            domainSuffix = student.scrapperDomainSuffix
             loginType = Sdk.ScrapperLoginType.valueOf(student.loginType)
         }
-        loginId = student.userLoginId
 
         mode = Sdk.Mode.valueOf(student.loginMode)
         mobileBaseUrl = student.mobileBaseUrl
-        certKey = student.certificateKey
-        privateKey = student.privateKey
-
-        emptyCookieJarInterceptor = true
+        keyId = student.certificateKey
+        privatePem = student.privateKey
 
         Timber.d("Sdk in ${student.loginMode} mode reinitialized")
     }

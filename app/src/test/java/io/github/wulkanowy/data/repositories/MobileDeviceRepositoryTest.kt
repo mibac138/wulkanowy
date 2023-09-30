@@ -13,16 +13,23 @@ import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Device
 import io.github.wulkanowy.utils.AutoRefreshHelper
 import io.github.wulkanowy.utils.init
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.SpyK
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDateTime.of
-import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime.of
 
 class MobileDeviceRepositoryTest {
 
@@ -143,9 +150,7 @@ class MobileDeviceRepositoryTest {
         id = 0,
         name = "",
         deviceId = "",
-        createDate = of(2019, 5, day, 0, 0, 0),
-        modificationDate = of(2019, 5, day, 0, 0, 0),
-        createDateZoned = of(2019, 5, day, 0, 0, 0).atZone(ZoneId.systemDefault()),
-        modificationDateZoned = of(2019, 5, day, 0, 0, 0).atZone(ZoneId.systemDefault())
+        createDate = of(2019, 5, day, 0, 0, 0, 0, ZoneOffset.UTC),
+        modificationDate = of(2019, 5, day, 0, 0, 0, 0, ZoneOffset.UTC),
     )
 }

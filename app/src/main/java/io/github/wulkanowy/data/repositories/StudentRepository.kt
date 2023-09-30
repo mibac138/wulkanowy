@@ -5,7 +5,9 @@ import io.github.wulkanowy.data.SdkFactory
 import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.dao.StudentDao
+import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
+import io.github.wulkanowy.data.db.entities.StudentName
 import io.github.wulkanowy.data.db.entities.StudentNickAndAvatar
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import io.github.wulkanowy.data.exceptions.NoCurrentStudentException
@@ -23,7 +25,6 @@ class StudentRepository @Inject constructor(
     private val semesterDb: SemesterDao,
     private val authDb: AuthDataRepository,
     private val sdk: SdkFactory,
-    private val appInfo: AppInfo,
     private val appDatabase: AppDatabase,
 ) {
 
@@ -35,26 +36,18 @@ class StudentRepository @Inject constructor(
         pin: String,
         symbol: String,
         token: String
-    ): List<StudentWithSemesters> = sdk.initUnauthorized()
-        .getStudentsFromMobileApi(token, pin, symbol, "")
-        .mapToEntities(colors = appInfo.defaultColorsForAvatar)
-
-    suspend fun getStudentsScrapper(
-        email: String,
-        password: String,
-        scrapperBaseUrl: String,
-        symbol: String
-    ): List<StudentWithSemesters> = sdk.initUnauthorized()
-        .getStudentsFromScrapper(email, password, scrapperBaseUrl, symbol)
-        .mapToEntities(password, appInfo.defaultColorsForAvatar)
+    ): RegisterUser = sdk.initUnauthorized()
+        .getStudentsFromHebe(token, pin, symbol, "")
+        .mapToPojo(null)
 
     suspend fun getUserSubjectsFromScrapper(
         email: String,
         password: String,
         scrapperBaseUrl: String,
+        domainSuffix: String,
         symbol: String
     ): RegisterUser = sdk.initUnauthorized()
-        .getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, symbol)
+        .getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, domainSuffix, symbol)
         .mapToPojo(password)
 
     suspend fun getStudentsHybrid(
@@ -62,9 +55,9 @@ class StudentRepository @Inject constructor(
         password: String,
         scrapperBaseUrl: String,
         symbol: String
-    ): List<StudentWithSemesters> = sdk.initUnauthorized()
+    ): RegisterUser = sdk.initUnauthorized()
         .getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
-        .mapToEntities(password, appInfo.defaultColorsForAvatar)
+        .mapToPojo(password)
 
     suspend fun getSavedStudents(): List<StudentWithSemesters> =
         studentDb.loadStudentsWithSemesters()
@@ -82,7 +75,7 @@ class StudentRepository @Inject constructor(
         val semesters = studentsWithSemesters.flatMap { it.semesters }
         val students = studentsWithSemesters.map { it.student }
             .map { student ->
-                if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API) {
+                if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
                     student.copy().also {
                         it.nick = student.nick
                         it.avatarColor = student.avatarColor
@@ -124,4 +117,21 @@ class StudentRepository @Inject constructor(
 
     suspend fun isOneUniqueStudent() = getSavedStudents()
         .distinctBy { it.student.studentName }.size == 1
+
+    suspend fun authorizePermission(student: Student, semester: Semester, pesel: String) =
+        sdk.init(student)
+            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            .authorizePermission(pesel)
+
+    suspend fun refreshStudentName(student: Student, semester: Semester) {
+        val newCurrentApiStudent = sdk.init(student)
+            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            .getCurrentStudent() ?: return
+
+        val studentName = StudentName(
+            studentName = "${newCurrentApiStudent.studentName} ${newCurrentApiStudent.studentSurname}"
+        ).apply { id = student.id }
+
+        studentDb.update(studentName)
+    }
 }

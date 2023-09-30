@@ -2,17 +2,24 @@
   "formatVersion": 1,
   "database": {
     "version": 56,
-    "identityHash": "79878dfd4fbe438fa76d7ef148e3c7c2",
+    "identityHash": "48f0538bd21601eb5322a7d850e04134",
     "entities": [
       {
         "tableName": "Students",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scrapper_base_url` TEXT NOT NULL, `mobile_base_url` TEXT NOT NULL, `login_type` TEXT NOT NULL, `login_mode` TEXT NOT NULL, `certificate_key` TEXT NOT NULL, `private_key` TEXT NOT NULL, `is_parent` INTEGER NOT NULL, `email` TEXT NOT NULL, `symbol` TEXT NOT NULL, `student_id` INTEGER NOT NULL, `user_login_id` INTEGER NOT NULL, `user_name` TEXT NOT NULL, `student_name` TEXT NOT NULL, `school_id` TEXT NOT NULL, `school_short` TEXT NOT NULL, `school_name` TEXT NOT NULL, `class_name` TEXT NOT NULL, `class_id` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `registration_date` INTEGER NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nick` TEXT NOT NULL, `avatar_color` INTEGER NOT NULL, `password` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scrapper_base_url` TEXT NOT NULL, `scrapper_domain_suffix` TEXT NOT NULL DEFAULT '', `mobile_base_url` TEXT NOT NULL, `login_type` TEXT NOT NULL, `login_mode` TEXT NOT NULL, `certificate_key` TEXT NOT NULL, `private_key` TEXT NOT NULL, `is_parent` INTEGER NOT NULL, `email` TEXT NOT NULL, `password` TEXT NOT NULL, `symbol` TEXT NOT NULL, `student_id` INTEGER NOT NULL, `user_login_id` INTEGER NOT NULL, `user_name` TEXT NOT NULL, `student_name` TEXT NOT NULL, `school_id` TEXT NOT NULL, `school_short` TEXT NOT NULL, `school_name` TEXT NOT NULL, `class_name` TEXT NOT NULL, `class_id` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `registration_date` INTEGER NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nick` TEXT NOT NULL, `avatar_color` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "scrapperBaseUrl",
             "columnName": "scrapper_base_url",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "scrapperDomainSuffix",
+            "columnName": "scrapper_domain_suffix",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "mobileBaseUrl",
@@ -53,6 +60,12 @@
           {
             "fieldPath": "email",
             "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "password",
+            "columnName": "password",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -144,12 +157,6 @@
             "fieldPath": "avatarColor",
             "columnName": "avatar_color",
             "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "password",
-            "columnName": "password",
-            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -2424,54 +2431,12 @@
         },
         "indices": [],
         "foreignKeys": []
-      },
-      {
-        "tableName": "StudentAuthData",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`email` TEXT NOT NULL, `version` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
-        "fields": [
-          {
-            "fieldPath": "email",
-            "columnName": "email",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "version",
-            "columnName": "version",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [
-          {
-            "name": "index_StudentAuthData_email",
-            "unique": true,
-            "columnNames": [
-              "email"
-            ],
-            "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_StudentAuthData_email` ON `${TABLE_NAME}` (`email`)"
-          }
-        ],
-        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '79878dfd4fbe438fa76d7ef148e3c7c2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '48f0538bd21601eb5322a7d850e04134')"
     ]
   }
 }

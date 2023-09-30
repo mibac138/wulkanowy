@@ -41,8 +41,8 @@ class SemesterRepository @Inject constructor(
         val isNoSemesters = semesters.isEmpty()
 
         val isRefreshOnModeChangeRequired = when {
-            Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.API -> {
-                semesters.firstOrNull { it.isCurrent }?.let {
+            Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE -> {
+                semesters.firstOrNull { it.isCurrent() }?.let {
                     0 == it.diaryId && 0 == it.kindergartenDiaryId
                 } == true
             }
@@ -50,7 +50,7 @@ class SemesterRepository @Inject constructor(
         }
 
         val isRefreshOnNoCurrentAppropriate =
-            refreshOnNoCurrent && !semesters.any { semester -> semester.isCurrent }
+            refreshOnNoCurrent && !semesters.any { semester -> semester.isCurrent() }
 
         return forceRefresh || isNoSemesters || isRefreshOnModeChangeRequired || isRefreshOnNoCurrentAppropriate
     }

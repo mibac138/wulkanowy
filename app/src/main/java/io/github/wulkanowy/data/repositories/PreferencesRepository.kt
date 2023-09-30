@@ -2,9 +2,11 @@ package io.github.wulkanowy.data.repositories
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.StringRes
 import androidx.core.content.edit
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.fredporciuncula.flow.preferences.Preference
+import com.fredporciuncula.flow.preferences.Serializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.enums.*
@@ -13,7 +15,6 @@ import io.github.wulkanowy.ui.modules.grade.GradeAverageMode
 import io.github.wulkanowy.ui.modules.settings.appearance.menuorder.AppMenuItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -35,19 +36,28 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_attendance_present
         )
 
-    val gradeAverageMode: GradeAverageMode
-        get() = GradeAverageMode.getByValue(
-            getString(
-                R.string.pref_key_grade_average_mode,
-                R.string.pref_default_grade_average_mode
-            )
+    private val gradeAverageModePref: Preference<GradeAverageMode>
+        get() = getObjectFlow(
+            R.string.pref_key_grade_average_mode,
+            R.string.pref_default_grade_average_mode,
+            object : Serializer<GradeAverageMode> {
+                override fun serialize(value: GradeAverageMode) = value.value
+                override fun deserialize(serialized: String) =
+                    GradeAverageMode.getByValue(serialized)
+            },
         )
 
-    val gradeAverageForceCalc: Boolean
-        get() = getBoolean(
-            R.string.pref_key_grade_average_force_calc,
-            R.bool.pref_default_grade_average_force_calc
+    val gradeAverageModeFlow: Flow<GradeAverageMode>
+        get() = gradeAverageModePref.asFlow()
+
+    private val gradeAverageForceCalcPref: Preference<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_grade_average_force_calc),
+            context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc)
         )
+
+    val gradeAverageForceCalcFlow: Flow<Boolean>
+        get() = gradeAverageForceCalcPref.asFlow()
 
     val gradeExpandMode: GradeExpandMode
         get() = GradeExpandMode.getByValue(
@@ -138,11 +148,23 @@ class PreferencesRepository @Inject constructor(
             R.string.pref_default_grade_modifier_plus
         ).toDouble()
 
+    val gradePlusModifierFlow: Flow<Double>
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_plus,
+            R.string.pref_default_grade_modifier_plus
+        ).asFlow().map { it.toDouble() }
+
     val gradeMinusModifier: Double
         get() = getString(
             R.string.pref_key_grade_modifier_minus,
             R.string.pref_default_grade_modifier_minus
         ).toDouble()
+
+    val gradeMinusModifierFlow: Flow<Double>
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_minus,
+            R.string.pref_default_grade_modifier_minus
+        ).asFlow().map { it.toDouble() }
 
     val fillMessageContent: Boolean
         get() = getBoolean(
@@ -178,12 +200,13 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_timetable_show_timers
         )
 
-    var isHomeworkFullscreen: Boolean
-        get() = getBoolean(
-            R.string.pref_key_homework_fullscreen,
-            R.bool.pref_default_homework_fullscreen
+    val showTimetableGaps: TimetableGapsMode
+        get() = TimetableGapsMode.getByValue(
+            getString(
+                R.string.pref_key_timetable_show_gaps,
+                R.string.pref_default_timetable_show_gaps
+            )
         )
-        set(value) = sharedPref.edit().putBoolean("homework_fullscreen", value).apply()
 
     val showSubjectsWithoutGrades: Boolean
         get() = getBoolean(
@@ -191,11 +214,11 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_subjects_without_grades
         )
 
-    val isOptionalArithmeticAverage: Boolean
-        get() = getBoolean(
-            R.string.pref_key_optional_arithmetic_average,
-            R.bool.pref_default_optional_arithmetic_average
-        )
+    val isOptionalArithmeticAverageFlow: Flow<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_optional_arithmetic_average),
+            context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)
+        ).asFlow()
 
     var lasSyncDate: Instant?
         get() = getLong(R.string.pref_key_last_sync_date, R.string.pref_default_last_sync_date)
@@ -327,6 +350,12 @@ class PreferencesRepository @Inject constructor(
             )
         }
 
+    var isIncognitoMode: Boolean
+        get() = getBoolean(R.string.pref_key_incognito_moge, R.bool.pref_default_incognito_mode)
+        set(value) = sharedPref.edit {
+            putBoolean(context.getString(R.string.pref_key_incognito_moge), value)
+        }
+
     var installationId: String
         get() = sharedPref.getString(PREF_KEY_INSTALLATION_ID, null).orEmpty()
         private set(value) = sharedPref.edit { putString(PREF_KEY_INSTALLATION_ID, value) }
@@ -341,6 +370,21 @@ class PreferencesRepository @Inject constructor(
 
     private fun getLong(id: String, default: Int) =
         sharedPref.getLong(id, context.resources.getString(default).toLong())
+
+    private fun getStringFlow(id: Int, default: Int) =
+        flowSharedPref.getString(context.getString(id), context.getString(default))
+
+    private fun <T : Any> getObjectFlow(
+        @StringRes id: Int,
+        @StringRes default: Int,
+        serializer: Serializer<T>
+    ): Preference<T> = flowSharedPref.getObject(
+        key = context.getString(id),
+        serializer = serializer,
+        defaultValue = serializer.deserialize(
+            flowSharedPref.getString(context.getString(default)).get()
+        )
+    )
 
     private fun getString(id: Int, default: Int) = getString(context.getString(id), default)
 
