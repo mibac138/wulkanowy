@@ -5,14 +5,16 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.ArrayAdapter
+import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
-import io.github.wulkanowy.data.db.entities.StudentWithSemesters
+import io.github.wulkanowy.data.pojos.RegisterUser
 import io.github.wulkanowy.databinding.FragmentLoginAdvancedBinding
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.ui.base.BaseFragment
 import io.github.wulkanowy.ui.modules.login.LoginActivity
+import io.github.wulkanowy.ui.modules.login.LoginData
 import io.github.wulkanowy.ui.modules.login.form.LoginSymbolAdapter
 import io.github.wulkanowy.utils.hideSoftInput
 import io.github.wulkanowy.utils.setOnEditorDoneSignIn
@@ -33,9 +35,9 @@ class LoginAdvancedFragment :
 
     override val formLoginType: String
         get() = when (binding.loginTypeSwitch.checkedRadioButtonId) {
-            R.id.loginTypeApi -> "API"
-            R.id.loginTypeScrapper -> "SCRAPPER"
-            else -> "HYBRID"
+            R.id.loginTypeApi -> Sdk.Mode.HEBE.name
+            R.id.loginTypeScrapper -> Sdk.Mode.SCRAPPER.name
+            else -> Sdk.Mode.HYBRID.name
         }
 
     override val formUsernameValue: String
@@ -53,6 +55,9 @@ class LoginAdvancedFragment :
     override val formHostValue: String
         get() = hostValues.getOrNull(hostKeys.indexOf(binding.loginFormHost.text.toString()))
             .orEmpty()
+
+    override val formDomainSuffix: String
+        get() = binding.loginFormDomainSuffix.text.toString().trim()
 
     override val formHostSymbol: String
         get() = hostSymbols.getOrNull(hostKeys.indexOf(binding.loginFormHost.text.toString()))
@@ -80,6 +85,8 @@ class LoginAdvancedFragment :
     }
 
     override fun initView() {
+        (requireActivity() as LoginActivity).showActionBar(true)
+
         hostKeys = resources.getStringArray(R.array.hosts_keys)
         hostValues = resources.getStringArray(R.array.hosts_values)
         hostSymbols = resources.getStringArray(R.array.hosts_symbols)
@@ -96,7 +103,7 @@ class LoginAdvancedFragment :
             loginTypeSwitch.setOnCheckedChangeListener { _, checkedId ->
                 presenter.onLoginModeSelected(
                     when (checkedId) {
-                        R.id.loginTypeApi -> Sdk.Mode.API
+                        R.id.loginTypeApi -> Sdk.Mode.HEBE
                         R.id.loginTypeScrapper -> Sdk.Mode.SCRAPPER
                         else -> Sdk.Mode.HYBRID
                     }
@@ -276,6 +283,7 @@ class LoginAdvancedFragment :
             loginFormUsernameLayout.visibility = VISIBLE
             loginFormPassLayout.visibility = VISIBLE
             loginFormHostLayout.visibility = VISIBLE
+            loginFormDomainSuffixLayout.isVisible = true
             loginFormPinLayout.visibility = GONE
             loginFormSymbolLayout.visibility = VISIBLE
             loginFormTokenLayout.visibility = GONE
@@ -287,6 +295,7 @@ class LoginAdvancedFragment :
             loginFormUsernameLayout.visibility = VISIBLE
             loginFormPassLayout.visibility = VISIBLE
             loginFormHostLayout.visibility = VISIBLE
+            loginFormDomainSuffixLayout.isVisible = true
             loginFormPinLayout.visibility = GONE
             loginFormSymbolLayout.visibility = VISIBLE
             loginFormTokenLayout.visibility = GONE
@@ -298,6 +307,7 @@ class LoginAdvancedFragment :
             loginFormUsernameLayout.visibility = GONE
             loginFormPassLayout.visibility = GONE
             loginFormHostLayout.visibility = GONE
+            loginFormDomainSuffixLayout.isVisible = false
             loginFormPinLayout.visibility = VISIBLE
             loginFormSymbolLayout.visibility = VISIBLE
             loginFormTokenLayout.visibility = VISIBLE
@@ -320,14 +330,12 @@ class LoginAdvancedFragment :
         binding.loginFormContainer.visibility = if (show) VISIBLE else GONE
     }
 
-    override fun notifyParentAccountLogged(studentsWithSemesters: List<StudentWithSemesters>) {
-        (activity as? LoginActivity)?.onFormFragmentAccountLogged(
-            studentsWithSemesters, Triple(
-                binding.loginFormUsername.text.toString(),
-                binding.loginFormPass.text.toString(),
-                resources.getStringArray(R.array.hosts_values)[1]
-            )
-        )
+    override fun navigateToSymbol(loginData: LoginData) {
+        (activity as? LoginActivity)?.navigateToSymbolFragment(loginData)
+    }
+
+    override fun navigateToStudentSelect(loginData: LoginData, registerUser: RegisterUser) {
+        (activity as? LoginActivity)?.navigateToStudentSelect(loginData, registerUser)
     }
 
     override fun onResume() {

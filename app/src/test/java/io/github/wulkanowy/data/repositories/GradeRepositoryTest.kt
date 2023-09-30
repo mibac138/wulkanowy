@@ -1,13 +1,16 @@
 package io.github.wulkanowy.data.repositories
 
+import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.GradeDao
 import io.github.wulkanowy.data.db.dao.GradeSummaryDao
+import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntities
+import io.github.wulkanowy.data.toFirstResult
 import io.github.wulkanowy.getSemesterEntity
 import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
+import io.github.wulkanowy.sdk.pojo.Grades
 import io.github.wulkanowy.utils.AutoRefreshHelper
-import io.github.wulkanowy.utils.toFirstResult
 import io.mockk.MockKAnnotations
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -25,6 +28,7 @@ import org.junit.Before
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalDate.of
+import java.time.ZoneOffset
 import io.github.wulkanowy.sdk.pojo.Grade as SdkGrade
 
 class GradeRepositoryTest {
@@ -57,7 +61,11 @@ class GradeRepositoryTest {
         coEvery { gradeDb.deleteAll(any()) } just Runs
         coEvery { gradeDb.insertAll(any()) } returns listOf()
 
-        coEvery { gradeSummaryDb.loadAll(1, 1) } returnsMany listOf(flowOf(listOf()), flowOf(listOf()), flowOf(listOf()))
+        coEvery { gradeSummaryDb.loadAll(1, 1) } returnsMany listOf(
+            flowOf(listOf()),
+            flowOf(listOf()),
+            flowOf(listOf())
+        )
         coEvery { gradeSummaryDb.deleteAll(any()) } just Runs
         coEvery { gradeSummaryDb.insertAll(any()) } returns listOf()
     }
@@ -65,14 +73,14 @@ class GradeRepositoryTest {
     @Test
     fun `mark grades older than registration date as read`() {
         // prepare
-        val boundaryDate = of(2019, 2, 27).atStartOfDay()
+        val boundaryDate = of(2019, 2, 27).atStartOfDay().toInstant(ZoneOffset.UTC)
         val remoteList = listOf(
             createGradeApi(5, 4.0, of(2019, 2, 25), "Ocena pojawiła się"),
             createGradeApi(5, 4.0, of(2019, 2, 26), "przed zalogowanie w aplikacji"),
             createGradeApi(5, 4.0, of(2019, 2, 27), "Ocena z dnia logowania"),
             createGradeApi(5, 4.0, of(2019, 2, 28), "Ocena jeszcze nowsza")
         )
-        coEvery { sdk.getGrades(1) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(1) } returns createGrades(remoteList)
 
         coEvery { gradeDb.loadAll(1, 1) } returnsMany listOf(
             flowOf(listOf()), // empty because it is new user
@@ -81,11 +89,17 @@ class GradeRepositoryTest {
         )
 
         // execute
-        val res = runBlocking { gradeRepository.getGrades(student.copy(registrationDate = boundaryDate), semester, true).toFirstResult() }
+        val res = runBlocking {
+            gradeRepository.getGrades(
+                student = student.copy(registrationDate = boundaryDate),
+                semester = semester,
+                forceRefresh = true
+            ).toFirstResult()
+        }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(4, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(4, res.dataOrNull?.first?.size)
         coVerify {
             gradeDb.insertAll(withArg {
                 assertEquals(4, it.size)
@@ -101,17 +115,32 @@ class GradeRepositoryTest {
     fun `mitigate mark grades as unread when old grades changed`() {
         // prepare
         val remoteList = listOf(
-            createGradeApi(5, 2.0, of(2019, 2, 25), "Ocena ma datę, jest inna, ale nie zostanie powiadomiona"),
+            createGradeApi(
+                5,
+                2.0,
+                of(2019, 2, 25),
+                "Ocena ma datę, jest inna, ale nie zostanie powiadomiona"
+            ),
             createGradeApi(4, 3.0, of(2019, 2, 26), "starszą niż ostatnia lokalnie"),
-            createGradeApi(3, 4.0, of(2019, 2, 27), "Ta jest z tego samego dnia co ostatnia lokalnie"),
+            createGradeApi(
+                3,
+                4.0,
+                of(2019, 2, 27),
+                "Ta jest z tego samego dnia co ostatnia lokalnie"
+            ),
             createGradeApi(2, 5.0, of(2019, 2, 28), "Ta jest już w ogóle nowa")
         )
-        coEvery { sdk.getGrades(1) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(1) } returns createGrades(remoteList)
 
         val localList = listOf(
             createGradeApi(5, 3.0, of(2019, 2, 25), "Jedna ocena"),
             createGradeApi(4, 4.0, of(2019, 2, 26), "Druga"),
-            createGradeApi(3, 4.0, of(2019, 2, 27), "Ta jest z tego samego dnia co ostatnia lokalnie")
+            createGradeApi(
+                3,
+                4.0,
+                of(2019, 2, 27),
+                "Ta jest z tego samego dnia co ostatnia lokalnie"
+            )
         )
         coEvery { gradeDb.loadAll(1, 1) } returnsMany listOf(
             flowOf(localList.mapToEntities(semester)),
@@ -123,8 +152,8 @@ class GradeRepositoryTest {
         val res = runBlocking { gradeRepository.getGrades(student, semester, true).toFirstResult() }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(4, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(4, res.dataOrNull?.first?.size)
         coVerify {
             gradeDb.insertAll(withArg {
                 assertEquals(3, it.size)
@@ -148,7 +177,7 @@ class GradeRepositoryTest {
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"),
             createGradeApi(3, 5.0, of(2019, 2, 26), "Jakaś inna ocena")
         )
-        coEvery { sdk.getGrades(1) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(1) } returns createGrades(remoteList)
 
         val localList = listOf(
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"),
@@ -165,8 +194,8 @@ class GradeRepositoryTest {
         val res = runBlocking { gradeRepository.getGrades(student, semester, true).toFirstResult() }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(2, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(2, res.dataOrNull?.first?.size)
         coVerify { gradeDb.insertAll(match { it.isEmpty() }) }
         coVerify { gradeDb.deleteAll(match { it.size == 1 }) } // ... here
     }
@@ -179,7 +208,7 @@ class GradeRepositoryTest {
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"), // will be added...
             createGradeApi(3, 5.0, of(2019, 2, 26), "Jakaś inna ocena")
         )
-        coEvery { sdk.getGrades(1) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(1) } returns createGrades(remoteList)
 
         val localList = listOf(
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"),
@@ -195,8 +224,8 @@ class GradeRepositoryTest {
         val res = runBlocking { gradeRepository.getGrades(student, semester, true).toFirstResult() }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(3, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(3, res.dataOrNull?.first?.size)
         coVerify { gradeDb.insertAll(match { it.size == 1 }) } // ... here
         coVerify { gradeDb.deleteAll(match { it.isEmpty() }) }
     }
@@ -209,7 +238,7 @@ class GradeRepositoryTest {
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"),
             createGradeApi(3, 5.0, of(2019, 2, 26), "Jakaś inna ocena")
         )
-        coEvery { sdk.getGrades(1) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(1) } returns createGrades(remoteList)
 
         coEvery { gradeDb.loadAll(1, 1) } returnsMany listOf(
             flowOf(listOf()),
@@ -221,15 +250,15 @@ class GradeRepositoryTest {
         val res = runBlocking { gradeRepository.getGrades(student, semester, true).toFirstResult() }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(3, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(3, res.dataOrNull?.first?.size)
     }
 
     @Test
     fun `force refresh when remote is empty`() {
         // prepare
         val remoteList = emptyList<SdkGrade>()
-        coEvery { sdk.getGrades(semester.semesterId) } returns (remoteList to emptyList())
+        coEvery { sdk.getGrades(semester.semesterId) } returns createGrades(remoteList)
 
         val localList = listOf(
             createGradeApi(5, 3.0, of(2019, 2, 25), "Taka sama ocena"),
@@ -244,22 +273,33 @@ class GradeRepositoryTest {
         val res = runBlocking { gradeRepository.getGrades(student, semester, true).toFirstResult() }
 
         // verify
-        assertEquals(null, res.error)
-        assertEquals(0, res.data?.first?.size)
+        assertEquals(null, res.errorOrNull)
+        assertEquals(0, res.dataOrNull?.first?.size)
     }
 
-    private fun createGradeApi(value: Int, weight: Double, date: LocalDate, desc: String) = SdkGrade(
-        subject = "",
-        color = "",
-        comment = "",
-        date = date,
-        description = desc,
-        entry = "",
-        modifier = .0,
-        symbol = "",
-        teacher = "",
-        value = value.toDouble(),
-        weight = weight.toString(),
-        weightValue = weight
+    private fun createGradeApi(value: Int, weight: Double, date: LocalDate, desc: String) =
+        SdkGrade(
+            subject = "",
+            color = "",
+            comment = "",
+            date = date,
+            description = desc,
+            entry = "",
+            modifier = .0,
+            symbol = "",
+            teacher = "",
+            value = value.toDouble(),
+            weight = weight.toString(),
+            weightValue = weight
+        )
+
+    private fun createGrades(grades: List<SdkGrade>): Grades = Grades(
+        details = grades,
+        summary = listOf(),
+        descriptive = emptyList(),
+        isAverage = false,
+        isPoints = false,
+        isForAdults = false,
+        type = 0,
     )
 }

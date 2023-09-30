@@ -34,6 +34,7 @@
     <string-array name="grade_sorting_mode_entries">
         <item>Alfabetycznie</item>
         <item>Według daty</item>
+        <item>Według średniej</item>
     </string-array>
     <string-array name="grade_color_scheme_entries">
         <item>Dzienniczek+</item>
@@ -49,6 +50,11 @@
         <item>Średnia ocen tylko z wybranego semestru</item>
         <item>Średnia ze średnich z obu semestrów</item>
         <item>Średnia wszystkich ocen z całego roku</item>
+    </string-array>
+    <string-array name="timetable_show_gaps_entries">
+        <item>Nie pokauj</item>
+        <item>Tylko między lekcjami</item>
+        <item>Przed i między lekcjami</item>
     </string-array>
     <string-array name="dashboard_tile_entries">
         <item>Szczęśliwy numerek</item>

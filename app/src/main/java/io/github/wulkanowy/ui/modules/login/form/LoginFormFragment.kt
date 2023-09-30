@@ -9,16 +9,17 @@ import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
-import io.github.wulkanowy.data.db.entities.StudentWithSemesters
+import io.github.wulkanowy.data.db.entities.AdminMessage
+import io.github.wulkanowy.data.pojos.RegisterUser
+import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.databinding.FragmentLoginFormBinding
 import io.github.wulkanowy.ui.base.BaseFragment
+import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
 import io.github.wulkanowy.ui.modules.login.LoginActivity
-import io.github.wulkanowy.utils.AppInfo
-import io.github.wulkanowy.utils.hideSoftInput
-import io.github.wulkanowy.utils.openEmailClient
-import io.github.wulkanowy.utils.openInternetBrowser
-import io.github.wulkanowy.utils.setOnEditorDoneSignIn
-import io.github.wulkanowy.utils.showSoftInput
+import io.github.wulkanowy.ui.modules.login.LoginData
+import io.github.wulkanowy.ui.modules.login.support.LoginSupportDialog
+import io.github.wulkanowy.ui.modules.login.support.LoginSupportInfo
+import io.github.wulkanowy.utils.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -30,6 +31,9 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
 
     @Inject
     lateinit var appInfo: AppInfo
+
+    @Inject
+    lateinit var preferencesRepository: PreferencesRepository
 
     companion object {
         fun newInstance() = LoginFormFragment()
@@ -44,6 +48,9 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
     override val formHostValue: String
         get() = hostValues.getOrNull(hostKeys.indexOf(binding.loginFormHost.text.toString()))
             .orEmpty()
+
+    override val formDomainSuffix: String
+        get() = binding.loginFormDomainSuffix.text.toString()
 
     override val formHostSymbol: String
         get() = hostSymbols.getOrNull(hostKeys.indexOf(binding.loginFormHost.text.toString()))
@@ -68,6 +75,8 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
     }
 
     override fun initView() {
+        (requireActivity() as LoginActivity).showActionBar(false)
+
         hostKeys = resources.getStringArray(R.array.hosts_keys)
         hostValues = resources.getStringArray(R.array.hosts_values)
         hostSymbols = resources.getStringArray(R.array.hosts_symbols)
@@ -142,12 +151,14 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
     override fun setErrorPassRequired(focus: Boolean) {
         with(binding.loginFormPassLayout) {
             error = getString(R.string.error_field_required)
+            setEndIconTintList(requireContext().getAttrColorStateList(R.attr.colorError))
         }
     }
 
     override fun setErrorPassInvalid(focus: Boolean) {
         with(binding.loginFormPassLayout) {
             error = getString(R.string.login_invalid_password)
+            setEndIconTintList(requireContext().getAttrColorStateList(R.attr.colorError))
         }
     }
 
@@ -155,6 +166,7 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
         with(binding) {
             loginFormUsernameLayout.error = " "
             loginFormPassLayout.error = " "
+            loginFormPassLayout.setEndIconTintList(requireContext().getAttrColorStateList(R.attr.colorError))
             loginFormHostLayout.error = " "
             loginFormErrorBox.text = message ?: getString(R.string.login_incorrect_password_default)
             loginFormErrorBox.isVisible = true
@@ -174,6 +186,9 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
 
     override fun clearPassError() {
         binding.loginFormPassLayout.error = null
+        binding.loginFormPassLayout.setEndIconTintList(
+            requireContext().getAttrColorStateList(R.attr.colorOnSurface)
+        )
         binding.loginFormErrorBox.isVisible = false
     }
 
@@ -198,16 +213,34 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
         binding.loginFormContainer.visibility = if (show) VISIBLE else GONE
     }
 
+    override fun showAdminMessage(message: AdminMessage?) {
+        AdminMessageViewHolder(
+            binding = binding.loginFormMessage,
+            onAdminMessageDismissClickListener = presenter::onAdminMessageDismissed,
+            onAdminMessageClickListener = presenter::onAdminMessageSelected,
+        ).bind(message)
+        binding.loginFormMessage.root.isVisible = message != null
+    }
+
+    override fun openInternetBrowser(url: String) {
+        requireContext().openInternetBrowser(url)
+    }
+
+    override fun showDomainSuffixInput(show: Boolean) {
+        binding.loginFormDomainSuffixLayout.isVisible = show
+    }
+
+    override fun showOtherOptionsButton(show: Boolean) {
+        binding.loginFormAdvancedButton.isVisible = show
+    }
+
     @SuppressLint("SetTextI18n")
     override fun showVersion() {
         binding.loginFormVersion.text = "v${appInfo.versionName}"
     }
 
-    override fun notifyParentAccountLogged(
-        studentsWithSemesters: List<StudentWithSemesters>,
-        loginData: Triple<String, String, String>
-    ) {
-        (activity as? LoginActivity)?.onFormFragmentAccountLogged(studentsWithSemesters, loginData)
+    override fun showContact(show: Boolean) {
+        binding.loginFormContact.isVisible = show
     }
 
     override fun openPrivacyPolicyPage() {
@@ -217,9 +250,12 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
         )
     }
 
-    override fun showContact(show: Boolean) {
-        binding.loginFormContact.visibility = if (show) VISIBLE else GONE
-        binding.loginFormRecoverLink.visibility = if (show) GONE else VISIBLE
+    override fun navigateToSymbol(loginData: LoginData) {
+        (activity as? LoginActivity)?.navigateToSymbolFragment(loginData)
+    }
+
+    override fun navigateToStudentSelect(loginData: LoginData, registerUser: RegisterUser) {
+        (activity as? LoginActivity)?.navigateToStudentSelect(loginData, registerUser)
     }
 
     override fun openAdvancedLogin() {
@@ -245,21 +281,10 @@ class LoginFormFragment : BaseFragment<FragmentLoginFormBinding>(R.layout.fragme
     override fun onResume() {
         super.onResume()
         presenter.updateUsernameLabel()
+        presenter.updateCustomDomainSuffixVisibility()
     }
 
-    override fun openEmail(lastError: String) {
-        context?.openEmailClient(
-            chooserTitle = requireContext().getString(R.string.login_email_intent_title),
-            email = "wulkanowyinc@gmail.com",
-            subject = requireContext().getString(R.string.login_email_subject),
-            body = requireContext().getString(
-                R.string.login_email_text,
-                "${appInfo.systemManufacturer} ${appInfo.systemModel}",
-                appInfo.systemVersion.toString(),
-                appInfo.versionName,
-                "$formHostValue/$formHostSymbol",
-                lastError
-            )
-        )
+    override fun openEmail(supportInfo: LoginSupportInfo) {
+        LoginSupportDialog.newInstance(supportInfo).show(childFragmentManager, "support_dialog")
     }
 }

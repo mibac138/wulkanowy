@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.databinding.FragmentDashboardBinding
@@ -18,6 +19,7 @@ import io.github.wulkanowy.ui.base.BaseFragment
 import io.github.wulkanowy.ui.modules.account.accountdetails.AccountDetailsFragment
 import io.github.wulkanowy.ui.modules.attendance.summary.AttendanceSummaryFragment
 import io.github.wulkanowy.ui.modules.conference.ConferenceFragment
+import io.github.wulkanowy.ui.modules.dashboard.adapters.DashboardAdapter
 import io.github.wulkanowy.ui.modules.exam.ExamFragment
 import io.github.wulkanowy.ui.modules.grade.GradeFragment
 import io.github.wulkanowy.ui.modules.homework.HomeworkFragment
@@ -28,10 +30,7 @@ import io.github.wulkanowy.ui.modules.message.MessageFragment
 import io.github.wulkanowy.ui.modules.notificationscenter.NotificationsCenterFragment
 import io.github.wulkanowy.ui.modules.schoolannouncement.SchoolAnnouncementFragment
 import io.github.wulkanowy.ui.modules.timetable.TimetableFragment
-import io.github.wulkanowy.utils.capitalise
-import io.github.wulkanowy.utils.getThemeAttrColor
-import io.github.wulkanowy.utils.openInternetBrowser
-import io.github.wulkanowy.utils.toFormattedString
+import io.github.wulkanowy.utils.*
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -50,11 +49,20 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
     override var subtitleString =
         LocalDate.now().toFormattedString("EEEE, d MMMM yyyy").capitalise()
 
+    override val tileWidth: Int
+        get() {
+            val recyclerWidth = binding.dashboardRecycler.width
+            val margin = requireContext().dpToPx(24f).toInt()
+
+            return ((recyclerWidth - margin) / resources.displayMetrics.density).toInt()
+        }
+
     companion object {
 
         fun newInstance() = DashboardFragment()
     }
 
+    @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -141,7 +149,7 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
         val values = requireContext().resources.getStringArray(R.array.dashboard_tile_values)
         val selectedItemsState = values.map { value -> selectedItems.any { it.name == value } }
 
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.pref_dashboard_appearance_tiles_title)
             .setMultiChoiceItems(entries, selectedItemsState.toBooleanArray()) { _, _, _ -> }
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
@@ -178,8 +186,8 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
         binding.dashboardErrorContainer.isVisible = show
     }
 
-    override fun setErrorDetails(message: String) {
-        binding.dashboardErrorMessage.text = message
+    override fun setErrorDetails(error: Throwable) {
+        binding.dashboardErrorMessage.text = requireContext().resources.getErrorString(error)
     }
 
     override fun resetView() {

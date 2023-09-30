@@ -9,6 +9,7 @@ import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.utils.AnalyticsHelper
 import io.github.wulkanowy.utils.isHolidays
 import io.github.wulkanowy.utils.toFormattedString
+import io.github.wulkanowy.utils.toLocalDate
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
@@ -59,7 +60,10 @@ class SyncPresenter @Inject constructor(
                     WorkInfo.State.FAILED -> {
                         showError(
                             syncFailedString,
-                            Throwable(workInfo.outputData.getString("error"))
+                            Throwable(
+                                message = workInfo.outputData.getString("error_message"),
+                                cause = Throwable(workInfo.outputData.getString("error_stack"))
+                            )
                         )
                         analytics.logEvent("sync_now", "status" to "failed")
                     }
@@ -76,9 +80,9 @@ class SyncPresenter @Inject constructor(
     }
 
     private fun setSyncDateInView() {
-        val lastSyncDate = preferencesRepository.lastSyncDate
+        val lastSyncDate = preferencesRepository.lastSyncDate ?: return
 
-        if (lastSyncDate.year == 1970) return
+        if (lastSyncDate.toLocalDate().year == 1970) return
 
         view?.setLastSyncDate(lastSyncDate.toFormattedString("dd.MM.yyyy HH:mm:ss"))
     }

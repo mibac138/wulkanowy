@@ -1,104 +1,84 @@
 package io.github.wulkanowy.ui.base
 
+import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.HorizontalScrollView
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.getSystemService
+import androidx.core.os.bundleOf
 import androidx.core.view.isGone
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
+import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.databinding.DialogErrorBinding
-import io.github.wulkanowy.sdk.exception.FeatureNotAvailableException
-import io.github.wulkanowy.sdk.scrapper.exception.FeatureDisabledException
-import io.github.wulkanowy.sdk.scrapper.exception.ServiceUnavailableException
-import io.github.wulkanowy.utils.AppInfo
-import io.github.wulkanowy.utils.getString
-import io.github.wulkanowy.utils.openAppInMarket
-import io.github.wulkanowy.utils.openEmailClient
-import io.github.wulkanowy.utils.openInternetBrowser
-import okhttp3.internal.http2.StreamResetException
-import java.io.InterruptedIOException
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
+import io.github.wulkanowy.utils.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class ErrorDialog : BaseDialogFragment<DialogErrorBinding>() {
 
-    private lateinit var error: Throwable
-
     @Inject
     lateinit var appInfo: AppInfo
 
+    @Inject
+    lateinit var preferencesRepository: PreferencesRepository
+
+    private lateinit var error: Throwable
+
     companion object {
-        private const val ARGUMENT_KEY = "Data"
+        private const val ARGUMENT_KEY = "error"
 
         fun newInstance(error: Throwable) = ErrorDialog().apply {
-            arguments = Bundle().apply { putSerializable(ARGUMENT_KEY, error) }
+            arguments = bundleOf(ARGUMENT_KEY to error)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, 0)
-        arguments?.run {
-            error = getSerializable(ARGUMENT_KEY) as Throwable
-        }
+        error = requireArguments().serializable(ARGUMENT_KEY)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ) = DialogErrorBinding.inflate(inflater).apply { binding = this }.root
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        return MaterialAlertDialogBuilder(requireContext()).apply {
+            val errorStacktrace = error.stackTraceToString()
+            setTitle(R.string.all_details)
+            setView(DialogErrorBinding.inflate(layoutInflater).apply { binding = this }.root)
+            setNeutralButton(R.string.about_feedback) { _, _ ->
+                openConfirmDialog { openEmailClient(errorStacktrace) }
+            }
+            setNegativeButton(android.R.string.cancel) { _, _ -> }
+            setPositiveButton(android.R.string.copy) { _, _ -> copyErrorToClipboard(errorStacktrace) }
+        }.create().apply {
+            setOnShowListener {
+                getButton(AlertDialog.BUTTON_NEUTRAL).isEnabled = error.isShouldBeReported()
+            }
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        val errorStacktrace = error.stackTraceToString()
-
         with(binding) {
-            errorDialogContent.text = errorStacktrace.replace(": ${error.localizedMessage}", "")
-            with(errorDialogHorizontalScroll) {
-                post { fullScroll(HorizontalScrollView.FOCUS_LEFT) }
-            }
-            errorDialogCopy.setOnClickListener {
-                val clip = ClipData.newPlainText("Error details", errorStacktrace)
-                activity?.getSystemService<ClipboardManager>()?.setPrimaryClip(clip)
-
-                Toast.makeText(context, R.string.all_copied, LENGTH_LONG).show()
-            }
-            errorDialogCancel.setOnClickListener { dismiss() }
-            errorDialogReport.setOnClickListener {
-                openConfirmDialog { openEmailClient(errorStacktrace) }
-            }
-            errorDialogHumanizedMessage.text = resources.getString(error)
+            errorDialogHumanizedMessage.text = resources.getErrorString(error)
             errorDialogErrorMessage.text = error.localizedMessage
             errorDialogErrorMessage.isGone = error.localizedMessage.isNullOrBlank()
-            errorDialogReport.isEnabled = when (error) {
-                is UnknownHostException,
-                is InterruptedIOException,
-                is ConnectException,
-                is StreamResetException,
-                is SocketTimeoutException,
-                is ServiceUnavailableException,
-                is FeatureDisabledException,
-                is FeatureNotAvailableException -> false
-                else -> true
-            }
+            errorDialogContent.text = error.stackTraceToString()
+                .replace(": ${error.localizedMessage}", "")
         }
     }
 
+    private fun copyErrorToClipboard(errorStacktrace: String) {
+        val clip = ClipData.newPlainText("Error details", errorStacktrace)
+        requireActivity().getSystemService<ClipboardManager>()?.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), R.string.all_copied, LENGTH_LONG).show()
+    }
+
     private fun openConfirmDialog(callback: () -> Unit) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_error_check_update)
             .setMessage(R.string.dialog_error_check_update_message)
             .setNeutralButton(R.string.about_feedback) { _, _ -> callback() }
@@ -117,7 +97,8 @@ class ErrorDialog : BaseDialogFragment<DialogErrorBinding>() {
                 R.string.about_feedback_template,
                 "${appInfo.systemManufacturer} ${appInfo.systemModel}",
                 appInfo.systemVersion.toString(),
-                "${appInfo.versionName}-${appInfo.buildFlavor}"
+                "${appInfo.versionName}-${appInfo.buildFlavor}",
+                preferencesRepository.installationId,
             ) + "\n" + content,
             onActivityNotFound = {
                 requireContext().openInternetBrowser(

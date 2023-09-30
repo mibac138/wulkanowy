@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.io.Serializable
-import java.time.LocalDateTime
+import java.time.Instant
 
 @Entity(
     tableName = "Students",
@@ -18,6 +18,9 @@ data class Student(
 
     @ColumnInfo(name = "scrapper_base_url")
     val scrapperBaseUrl: String,
+
+    @ColumnInfo(name = "scrapper_domain_suffix", defaultValue = "")
+    val scrapperDomainSuffix: String,
 
     @ColumnInfo(name = "mobile_base_url")
     val mobileBaseUrl: String,
@@ -74,7 +77,7 @@ data class Student(
     val isCurrent: Boolean,
 
     @ColumnInfo(name = "registration_date")
-    val registrationDate: LocalDateTime
+    val registrationDate: Instant,
 ) : Serializable {
 
     @PrimaryKey(autoGenerate = true)

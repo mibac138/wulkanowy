@@ -1,5 +1,6 @@
 package io.github.wulkanowy.ui.modules.message.preview
 
+import androidx.annotation.StringRes
 import io.github.wulkanowy.data.db.entities.Message
 import io.github.wulkanowy.data.db.entities.MessageWithAttachment
 import io.github.wulkanowy.ui.base.BaseView
@@ -28,7 +29,7 @@ interface MessagePreviewView : BaseView {
 
     fun setErrorRetryCallback(callback: () -> Unit)
 
-    fun showOptions(show: Boolean)
+    fun showOptions(show: Boolean, isReplayable: Boolean)
 
     fun setDeletedOptionsLabels()
 
@@ -43,4 +44,6 @@ interface MessagePreviewView : BaseView {
     fun popView()
 
     fun printDocument(html: String, jobName: String)
+
+    fun showMessage(@StringRes messageId: Int)
 }

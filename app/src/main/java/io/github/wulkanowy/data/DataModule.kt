@@ -14,13 +14,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.wulkanowy.data.api.AdminMessageService
+import io.github.wulkanowy.data.api.SchoolsService
 import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.SharedPrefProvider
 import io.github.wulkanowy.data.repositories.PreferencesRepository
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.AppInfo
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.serialization.ExperimentalSerializationApi
+import io.github.wulkanowy.utils.RemoteConfigHelper
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -37,10 +37,11 @@ internal class DataModule {
 
     @Singleton
     @Provides
-    fun provideSdk(chuckerInterceptor: ChuckerInterceptor) =
+    fun provideSdk(chuckerInterceptor: ChuckerInterceptor, remoteConfig: RemoteConfigHelper) =
         Sdk().apply {
             androidVersion = android.os.Build.VERSION.RELEASE
             buildTag = android.os.Build.MODEL
+            userAgentTemplate = remoteConfig.userAgentTemplate
             setSimpleHttpLogger { Timber.d(it) }
 
             // for debug only
@@ -80,22 +81,31 @@ internal class DataModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
-    @OptIn(ExperimentalSerializationApi::class)
     @Singleton
     @Provides
-    fun provideRetrofit(
+    fun provideAdminMessageService(
         okHttpClient: OkHttpClient,
         json: Json,
         appInfo: AppInfo
-    ): Retrofit = Retrofit.Builder()
+    ): AdminMessageService = Retrofit.Builder()
         .baseUrl(appInfo.messagesBaseUrl)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
+        .create()
 
     @Singleton
     @Provides
-    fun provideAdminMessageService(retrofit: Retrofit): AdminMessageService = retrofit.create()
+    fun provideSchoolsService(
+        okHttpClient: OkHttpClient,
+        json: Json,
+        appInfo: AppInfo,
+    ): SchoolsService = Retrofit.Builder()
+        .baseUrl(appInfo.schoolsBaseUrl)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+        .create()
 
     @Singleton
     @Provides
@@ -110,7 +120,6 @@ internal class DataModule {
     fun provideSharedPref(@ApplicationContext context: Context): SharedPreferences =
         PreferenceManager.getDefaultSharedPreferences(context)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Singleton
     @Provides
     fun provideFlowSharedPref(sharedPreferences: SharedPreferences) =
@@ -197,7 +206,7 @@ internal class DataModule {
 
     @Singleton
     @Provides
-    fun provideReportingUnitDao(database: AppDatabase) = database.reportingUnitDao
+    fun provideMailboxesDao(database: AppDatabase) = database.mailboxDao
 
     @Singleton
     @Provides

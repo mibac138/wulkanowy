@@ -2,8 +2,8 @@ package io.github.wulkanowy.utils
 
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import fr.bipi.tressence.base.FormatterPriorityTree
-import fr.bipi.tressence.common.StackTraceRecorder
+import fr.bipi.treessence.base.FormatterPriorityTree
+import fr.bipi.treessence.common.StackTraceRecorder
 
 class CrashLogTree : FormatterPriorityTree(Log.VERBOSE) {
 
@@ -23,9 +23,6 @@ class CrashLogExceptionTree : FormatterPriorityTree(Log.ERROR, ExceptionFilter) 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         if (skipLog(priority, tag, message, t)) return
 
-        crashlytics.setCustomKey("priority", priority)
-        crashlytics.setCustomKey("tag", tag.orEmpty())
-        crashlytics.setCustomKey("message", message)
         if (t != null) {
             crashlytics.recordException(t)
         } else {

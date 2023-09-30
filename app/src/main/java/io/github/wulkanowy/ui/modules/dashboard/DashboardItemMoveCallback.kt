@@ -2,7 +2,9 @@ package io.github.wulkanowy.ui.modules.dashboard
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import java.util.Collections
+import io.github.wulkanowy.ui.modules.dashboard.adapters.DashboardAdapter
+import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
+import java.util.*
 
 class DashboardItemMoveCallback(
     private val dashboardAdapter: DashboardAdapter,
@@ -54,5 +56,5 @@ class DashboardItemMoveCallback(
     }
 
     private val RecyclerView.ViewHolder.isAdminMessageOrAccountItem: Boolean
-        get() = this is DashboardAdapter.AdminMessageViewHolder || this is DashboardAdapter.AccountViewHolder
+        get() = this is AdminMessageViewHolder || this is DashboardAdapter.AccountViewHolder
 }

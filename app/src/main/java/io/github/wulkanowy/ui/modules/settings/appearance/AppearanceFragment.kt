@@ -9,6 +9,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.ui.base.BaseActivity
 import io.github.wulkanowy.ui.base.ErrorDialog
+import io.github.wulkanowy.ui.modules.auth.AuthDialog
 import io.github.wulkanowy.ui.modules.main.MainView
 import io.github.wulkanowy.utils.AppInfo
 import javax.inject.Inject
@@ -78,13 +79,17 @@ class AppearanceFragment : PreferenceFragmentCompat(),
         ErrorDialog.newInstance(error).show(childFragmentManager, error.toString())
     }
 
+    override fun showAuthDialog() {
+        AuthDialog.newInstance().show(childFragmentManager, "auth_dialog")
+    }
+
     override fun onResume() {
         super.onResume()
-        preferenceScreen.sharedPreferences.registerOnSharedPreferenceChangeListener(this)
+        preferenceScreen.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
     }
 
     override fun onPause() {
         super.onPause()
-        preferenceScreen.sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
+        preferenceScreen.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(this)
     }
 }

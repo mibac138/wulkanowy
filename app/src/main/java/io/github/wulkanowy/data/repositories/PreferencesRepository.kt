@@ -2,31 +2,26 @@ package io.github.wulkanowy.data.repositories
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.StringRes
 import androidx.core.content.edit
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.fredporciuncula.flow.preferences.Preference
+import com.fredporciuncula.flow.preferences.Serializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.wulkanowy.R
-import io.github.wulkanowy.data.enums.GradeColorTheme
-import io.github.wulkanowy.data.enums.GradeExpandMode
-import io.github.wulkanowy.data.enums.GradeSortingMode
-import io.github.wulkanowy.sdk.toLocalDate
+import io.github.wulkanowy.data.enums.*
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.grade.GradeAverageMode
-import io.github.wulkanowy.utils.toLocalDateTime
-import io.github.wulkanowy.utils.toTimestamp
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.github.wulkanowy.ui.modules.settings.appearance.menuorder.AppMenuItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.Instant
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PreferencesRepository @Inject constructor(
     @ApplicationContext val context: Context,
@@ -35,28 +30,34 @@ class PreferencesRepository @Inject constructor(
     private val json: Json,
 ) {
 
-    val startMenuIndex: Int
-        get() = getString(R.string.pref_key_start_menu, R.string.pref_default_startup).toInt()
-
     val isShowPresent: Boolean
         get() = getBoolean(
             R.string.pref_key_attendance_present,
             R.bool.pref_default_attendance_present
         )
 
-    val gradeAverageMode: GradeAverageMode
-        get() = GradeAverageMode.getByValue(
-            getString(
-                R.string.pref_key_grade_average_mode,
-                R.string.pref_default_grade_average_mode
-            )
+    private val gradeAverageModePref: Preference<GradeAverageMode>
+        get() = getObjectFlow(
+            R.string.pref_key_grade_average_mode,
+            R.string.pref_default_grade_average_mode,
+            object : Serializer<GradeAverageMode> {
+                override fun serialize(value: GradeAverageMode) = value.value
+                override fun deserialize(serialized: String) =
+                    GradeAverageMode.getByValue(serialized)
+            },
         )
 
-    val gradeAverageForceCalc: Boolean
-        get() = getBoolean(
-            R.string.pref_key_grade_average_force_calc,
-            R.bool.pref_default_grade_average_force_calc
+    val gradeAverageModeFlow: Flow<GradeAverageMode>
+        get() = gradeAverageModePref.asFlow()
+
+    private val gradeAverageForceCalcPref: Preference<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_grade_average_force_calc),
+            context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc)
         )
+
+    val gradeAverageForceCalcFlow: Flow<Boolean>
+        get() = gradeAverageForceCalcPref.asFlow()
 
     val gradeExpandMode: GradeExpandMode
         get() = GradeExpandMode.getByValue(
@@ -73,8 +74,8 @@ class PreferencesRepository @Inject constructor(
         )
 
     val appThemeKey = context.getString(R.string.pref_key_app_theme)
-    val appTheme: String
-        get() = getString(appThemeKey, R.string.pref_default_app_theme)
+    val appTheme: AppTheme
+        get() = AppTheme.getByValue(getString(appThemeKey, R.string.pref_default_app_theme))
 
     val gradeColorTheme: GradeColorTheme
         get() = GradeColorTheme.getByValue(
@@ -131,6 +132,12 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_notification_piggyback
         )
 
+    val isNotificationPiggybackRemoveOriginalEnabled: Boolean
+        get() = getBoolean(
+            R.string.pref_key_notifications_piggyback_cancel_original,
+            R.bool.pref_default_notification_piggyback_cancel_original
+        )
+
     val isDebugNotificationEnableKey = context.getString(R.string.pref_key_notification_debug)
     val isDebugNotificationEnable: Boolean
         get() = getBoolean(isDebugNotificationEnableKey, R.bool.pref_default_notification_debug)
@@ -141,11 +148,23 @@ class PreferencesRepository @Inject constructor(
             R.string.pref_default_grade_modifier_plus
         ).toDouble()
 
+    val gradePlusModifierFlow: Flow<Double>
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_plus,
+            R.string.pref_default_grade_modifier_plus
+        ).asFlow().map { it.toDouble() }
+
     val gradeMinusModifier: Double
         get() = getString(
             R.string.pref_key_grade_modifier_minus,
             R.string.pref_default_grade_modifier_minus
         ).toDouble()
+
+    val gradeMinusModifierFlow: Flow<Double>
+        get() = getStringFlow(
+            R.string.pref_key_grade_modifier_minus,
+            R.string.pref_default_grade_modifier_minus
+        ).asFlow().map { it.toDouble() }
 
     val fillMessageContent: Boolean
         get() = getBoolean(
@@ -159,10 +178,12 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_timetable_show_groups
         )
 
-    val showWholeClassPlan: String
-        get() = getString(
-            R.string.pref_key_timetable_show_whole_class,
-            R.string.pref_default_timetable_show_whole_class
+    val showWholeClassPlan: TimetableMode
+        get() = TimetableMode.getByValue(
+            getString(
+                R.string.pref_key_timetable_show_whole_class,
+                R.string.pref_default_timetable_show_whole_class
+            )
         )
 
     val gradeSortingMode: GradeSortingMode
@@ -179,12 +200,13 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_timetable_show_timers
         )
 
-    var isHomeworkFullscreen: Boolean
-        get() = getBoolean(
-            R.string.pref_key_homework_fullscreen,
-            R.bool.pref_default_homework_fullscreen
+    val showTimetableGaps: TimetableGapsMode
+        get() = TimetableGapsMode.getByValue(
+            getString(
+                R.string.pref_key_timetable_show_gaps,
+                R.string.pref_default_timetable_show_gaps
+            )
         )
-        set(value) = sharedPref.edit().putBoolean("homework_fullscreen", value).apply()
 
     val showSubjectsWithoutGrades: Boolean
         get() = getBoolean(
@@ -192,16 +214,16 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_subjects_without_grades
         )
 
-    val isOptionalArithmeticAverage: Boolean
-        get() = getBoolean(
-            R.string.pref_key_optional_arithmetic_average,
-            R.bool.pref_default_optional_arithmetic_average
-        )
+    val isOptionalArithmeticAverageFlow: Flow<Boolean>
+        get() = flowSharedPref.getBoolean(
+            context.getString(R.string.pref_key_optional_arithmetic_average),
+            context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)
+        ).asFlow()
 
-    var lastSyncDate: LocalDateTime
+    var lastSyncDate: Instant?
         get() = getLong(R.string.pref_key_last_sync_date, R.string.pref_default_last_sync_date)
-            .toLocalDateTime()
-        set(value) = sharedPref.edit().putLong("last_sync_date", value.toTimestamp()).apply()
+            .takeIf { it != 0L }?.let(Instant::ofEpochMilli)
+        set(value) = sharedPref.edit().putLong("last_sync_date", value?.toEpochMilli() ?: 0).apply()
 
     var dashboardItemsPosition: Map<DashboardItem.Type, Int>?
         get() {
@@ -220,19 +242,31 @@ class PreferencesRepository @Inject constructor(
         get() = selectedDashboardTilesPreference.asFlow()
             .map { set ->
                 set.map { DashboardItem.Tile.valueOf(it) }
-                    .plus(DashboardItem.Tile.ACCOUNT)
-                    .plus(DashboardItem.Tile.ADMIN_MESSAGE)
+                    .plus(
+                        listOfNotNull(
+                            DashboardItem.Tile.ACCOUNT,
+                            DashboardItem.Tile.ADMIN_MESSAGE,
+                            DashboardItem.Tile.ADS.takeIf { isAdsEnabled }
+                        )
+                    )
                     .toSet()
             }
 
     var selectedDashboardTiles: Set<DashboardItem.Tile>
         get() = selectedDashboardTilesPreference.get()
             .map { DashboardItem.Tile.valueOf(it) }
-            .plus(DashboardItem.Tile.ACCOUNT)
-            .plus(DashboardItem.Tile.ADMIN_MESSAGE)
+            .plus(
+                listOfNotNull(
+                    DashboardItem.Tile.ACCOUNT,
+                    DashboardItem.Tile.ADMIN_MESSAGE,
+                    DashboardItem.Tile.ADS.takeIf { isAdsEnabled }
+                )
+            )
             .toSet()
         set(value) {
-            val filteredValue = value.filterNot { it == DashboardItem.Tile.ACCOUNT }
+            val filteredValue = value.filterNot {
+                it == DashboardItem.Tile.ACCOUNT || it == DashboardItem.Tile.ADMIN_MESSAGE
+            }
                 .map { it.name }
                 .toSet()
 
@@ -260,20 +294,97 @@ class PreferencesRepository @Inject constructor(
         get() = sharedPref.getInt(PREF_KEY_IN_APP_REVIEW_COUNT, 0)
         set(value) = sharedPref.edit().putInt(PREF_KEY_IN_APP_REVIEW_COUNT, value).apply()
 
-    var inAppReviewDate: LocalDate?
+    var inAppReviewDate: Instant?
         get() = sharedPref.getLong(PREF_KEY_IN_APP_REVIEW_DATE, 0).takeIf { it != 0L }
-            ?.toLocalDate()
-        set(value) = sharedPref.edit().putLong(PREF_KEY_IN_APP_REVIEW_DATE, value!!.toTimestamp())
-            .apply()
+            ?.let(Instant::ofEpochMilli)
+        set(value) = sharedPref.edit {
+            putLong(PREF_KEY_IN_APP_REVIEW_DATE, value?.toEpochMilli() ?: 0)
+        }
 
     var isAppReviewDone: Boolean
         get() = sharedPref.getBoolean(PREF_KEY_IN_APP_REVIEW_DONE, false)
-        set(value) = sharedPref.edit().putBoolean(PREF_KEY_IN_APP_REVIEW_DONE, value).apply()
+        set(value) = sharedPref.edit { putBoolean(PREF_KEY_IN_APP_REVIEW_DONE, value) }
+
+    var isAppSupportShown: Boolean
+        get() = sharedPref.getBoolean(PREF_KEY_APP_SUPPORT_SHOWN, false)
+        set(value) = sharedPref.edit { putBoolean(PREF_KEY_APP_SUPPORT_SHOWN, value) }
+
+    var isAgreeToProcessData: Boolean
+        get() = getBoolean(
+            R.string.pref_key_ads_consent_data_processing,
+            R.bool.pref_default_ads_consent_data_processing
+        )
+        set(value) = sharedPref.edit {
+            putBoolean(context.getString(R.string.pref_key_ads_consent_data_processing), value)
+        }
+
+    var isPersonalizedAdsEnabled: Boolean
+        get() = sharedPref.getBoolean(PREF_KEY_PERSONALIZED_ADS_ENABLED, false)
+        set(value) = sharedPref.edit { putBoolean(PREF_KEY_PERSONALIZED_ADS_ENABLED, value) }
+
+    val isAdsEnabledFlow = flowSharedPref.getBoolean(
+        context.getString(R.string.pref_key_ads_enabled),
+        context.resources.getBoolean(R.bool.pref_default_ads_enabled)
+    ).asFlow()
+
+    var isAdsEnabled: Boolean
+        get() = getBoolean(
+            R.string.pref_key_ads_enabled,
+            R.bool.pref_default_ads_enabled
+        )
+        set(value) = sharedPref.edit {
+            putBoolean(context.getString(R.string.pref_key_ads_enabled), value)
+        }
+
+    var appMenuItemOrder: List<AppMenuItem>
+        get() {
+            val value = sharedPref.getString(PREF_KEY_APP_MENU_ITEM_ORDER, null)
+                ?: return AppMenuItem.defaultAppMenuItemList
+
+            return json.decodeFromString(value)
+        }
+        set(value) = sharedPref.edit {
+            putString(
+                PREF_KEY_APP_MENU_ITEM_ORDER,
+                json.encodeToString(value)
+            )
+        }
+
+    var isIncognitoMode: Boolean
+        get() = getBoolean(R.string.pref_key_incognito_moge, R.bool.pref_default_incognito_mode)
+        set(value) = sharedPref.edit {
+            putBoolean(context.getString(R.string.pref_key_incognito_moge), value)
+        }
+
+    var installationId: String
+        get() = sharedPref.getString(PREF_KEY_INSTALLATION_ID, null).orEmpty()
+        private set(value) = sharedPref.edit { putString(PREF_KEY_INSTALLATION_ID, value) }
+
+    init {
+        if (installationId.isEmpty()) {
+            installationId = UUID.randomUUID().toString()
+        }
+    }
 
     private fun getLong(id: Int, default: Int) = getLong(context.getString(id), default)
 
     private fun getLong(id: String, default: Int) =
         sharedPref.getLong(id, context.resources.getString(default).toLong())
+
+    private fun getStringFlow(id: Int, default: Int) =
+        flowSharedPref.getString(context.getString(id), context.getString(default))
+
+    private fun <T : Any> getObjectFlow(
+        @StringRes id: Int,
+        @StringRes default: Int,
+        serializer: Serializer<T>
+    ): Preference<T> = flowSharedPref.getObject(
+        key = context.getString(id),
+        serializer = serializer,
+        defaultValue = serializer.deserialize(
+            flowSharedPref.getString(context.getString(default)).get()
+        )
+    )
 
     private fun getString(id: Int, default: Int) = getString(context.getString(id), default)
 
@@ -285,19 +396,15 @@ class PreferencesRepository @Inject constructor(
     private fun getBoolean(id: String, default: Int) =
         sharedPref.getBoolean(id, context.resources.getBoolean(default))
 
-    private fun getBoolean(id: Int, default: Boolean) =
-        sharedPref.getBoolean(context.getString(id), default)
-
     private companion object {
-
+        private const val PREF_KEY_APP_MENU_ITEM_ORDER = "app_menu_item_order"
+        private const val PREF_KEY_INSTALLATION_ID = "installation_id"
         private const val PREF_KEY_DASHBOARD_ITEMS_POSITION = "dashboard_items_position"
-
         private const val PREF_KEY_IN_APP_REVIEW_COUNT = "in_app_review_count"
-
         private const val PREF_KEY_IN_APP_REVIEW_DATE = "in_app_review_date"
-
         private const val PREF_KEY_IN_APP_REVIEW_DONE = "in_app_review_done"
-
+        private const val PREF_KEY_APP_SUPPORT_SHOWN = "app_support_shown"
+        private const val PREF_KEY_PERSONALIZED_ADS_ENABLED = "personalized_ads_enabled"
         private const val PREF_KEY_ADMIN_DISMISSED_MESSAGE_IDS = "admin_message_dismissed_ids"
     }
 }

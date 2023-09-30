@@ -1,13 +1,8 @@
 package io.github.wulkanowy.data.db.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy.ABORT
-import androidx.room.Query
-import androidx.room.Transaction
-import androidx.room.Update
+import androidx.room.*
 import io.github.wulkanowy.data.db.entities.Student
+import io.github.wulkanowy.data.db.entities.StudentName
 import io.github.wulkanowy.data.db.entities.StudentNickAndAvatar
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import javax.inject.Singleton
@@ -16,7 +11,7 @@ import javax.inject.Singleton
 @Dao
 abstract class StudentDao {
 
-    @Insert(onConflict = ABORT)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract suspend fun insertAll(student: List<Student>): List<Long>
 
     @Delete
@@ -24,6 +19,9 @@ abstract class StudentDao {
 
     @Update(entity = Student::class)
     abstract suspend fun update(studentNickAndAvatar: StudentNickAndAvatar)
+
+    @Update(entity = Student::class)
+    abstract suspend fun update(studentName: StudentName)
 
     @Query("SELECT * FROM Students WHERE is_current = 1")
     abstract suspend fun loadCurrent(): Student?
@@ -37,6 +35,10 @@ abstract class StudentDao {
     @Transaction
     @Query("SELECT * FROM Students")
     abstract suspend fun loadStudentsWithSemesters(): List<StudentWithSemesters>
+
+    @Transaction
+    @Query("SELECT * FROM Students WHERE id = :id")
+    abstract suspend fun loadStudentWithSemestersById(id: Long): StudentWithSemesters?
 
     @Query("UPDATE Students SET is_current = 1 WHERE id = :id")
     abstract suspend fun updateCurrent(id: Long)

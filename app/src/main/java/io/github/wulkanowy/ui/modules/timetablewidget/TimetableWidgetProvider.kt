@@ -1,50 +1,39 @@
 package io.github.wulkanowy.ui.modules.timetablewidget
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetManager.ACTION_APPWIDGET_DELETED
-import android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
-import android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID
-import android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS
+import android.appwidget.AppWidgetManager.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.widget.RemoteViews
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.graphics.drawable.toBitmap
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.SharedPrefProvider
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.exceptions.NoCurrentStudentException
 import io.github.wulkanowy.data.repositories.StudentRepository
-import io.github.wulkanowy.services.HiltBroadcastReceiver
 import io.github.wulkanowy.services.widgets.TimetableWidgetService
 import io.github.wulkanowy.ui.modules.Destination
 import io.github.wulkanowy.ui.modules.splash.SplashActivity
-import io.github.wulkanowy.utils.AnalyticsHelper
-import io.github.wulkanowy.utils.PendingIntentCompat
-import io.github.wulkanowy.utils.capitalise
-import io.github.wulkanowy.utils.createNameInitialsDrawable
-import io.github.wulkanowy.utils.getCompatColor
-import io.github.wulkanowy.utils.nextOrSameSchoolDay
-import io.github.wulkanowy.utils.nextSchoolDay
-import io.github.wulkanowy.utils.nickOrName
-import io.github.wulkanowy.utils.previousSchoolDay
-import io.github.wulkanowy.utils.toFormattedString
+import io.github.wulkanowy.utils.*
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.LocalDate
-import java.time.LocalDate.now
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class TimetableWidgetProvider : HiltBroadcastReceiver() {
+class TimetableWidgetProvider : BroadcastReceiver() {
 
     @Inject
     lateinit var appWidgetManager: AppWidgetManager
@@ -72,168 +61,186 @@ class TimetableWidgetProvider : HiltBroadcastReceiver() {
 
         private const val BUTTON_RESET = "buttonReset"
 
+        const val EXTRA_FROM_CONFIGURE = "extraFromConfigure"
+
         const val EXTRA_FROM_PROVIDER = "extraFromProvider"
 
         fun getDateWidgetKey(appWidgetId: Int) = "timetable_widget_date_$appWidgetId"
 
+        fun getTodayLastLessonEndDateTimeWidgetKey(appWidgetId: Int) =
+            "timetable_widget_today_last_lesson_end_date_time_$appWidgetId"
+
         fun getStudentWidgetKey(appWidgetId: Int) = "timetable_widget_student_$appWidgetId"
-
-        fun getThemeWidgetKey(appWidgetId: Int) = "timetable_widget_theme_$appWidgetId"
-
-        fun getCurrentThemeWidgetKey(appWidgetId: Int) =
-            "timetable_widget_current_theme_$appWidgetId"
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
         GlobalScope.launch {
             when (intent.action) {
-                ACTION_APPWIDGET_UPDATE -> onUpdate(context, intent)
-                ACTION_APPWIDGET_DELETED -> onDelete(intent)
+                ACTION_APPWIDGET_UPDATE -> onWidgetUpdate(context, intent)
+                ACTION_APPWIDGET_DELETED -> onWidgetDeleted(intent)
             }
         }
     }
 
-    private suspend fun onUpdate(context: Context, intent: Intent) {
-        if (intent.getStringExtra(EXTRA_BUTTON_TYPE) === null) {
-            intent.getIntArrayExtra(EXTRA_APPWIDGET_IDS)?.forEach { appWidgetId ->
-                val student =
-                    getStudent(sharedPref.getLong(getStudentWidgetKey(appWidgetId), 0), appWidgetId)
-                updateWidget(context, appWidgetId, now().nextOrSameSchoolDay, student)
-            }
+    private suspend fun onWidgetUpdate(context: Context, intent: Intent) {
+        val pressedButton = intent.getPressedButton()
+
+        if (pressedButton == null) {
+            val updatedWidgetIds = intent.getWidgetIds() ?: return
+            updatedWidgetIds.forEach { updateWidgetLayout(context, it) }
         } else {
-            val buttonType = intent.getStringExtra(EXTRA_BUTTON_TYPE)
-            val toggledWidgetId = intent.getIntExtra(EXTRA_TOGGLED_WIDGET_ID, 0)
-            val student = getStudent(
-                sharedPref.getLong(getStudentWidgetKey(toggledWidgetId), 0),
-                toggledWidgetId
-            )
-            val savedDate =
-                LocalDate.ofEpochDay(sharedPref.getLong(getDateWidgetKey(toggledWidgetId), 0))
-            val date = when (buttonType) {
-                BUTTON_RESET -> now().nextOrSameSchoolDay
-                BUTTON_NEXT -> savedDate.nextSchoolDay
-                BUTTON_PREV -> savedDate.previousSchoolDay
-                else -> now().nextOrSameSchoolDay
-            }
-            if (!buttonType.isNullOrBlank()) analytics.logEvent(
-                "changed_timetable_widget_day",
-                "button" to buttonType
-            )
-            updateWidget(context, toggledWidgetId, date, student)
+            val widgetId = intent.getToggledWidgetId() ?: return
+            reportChangedDay(pressedButton)
+            updateSavedWidgetDate(widgetId, pressedButton)
+            updateWidgetLayout(context, widgetId)
         }
     }
 
-    private fun onDelete(intent: Intent) {
-        val appWidgetId = intent.getIntExtra(EXTRA_APPWIDGET_ID, 0)
+    private fun Intent.getPressedButton(): String? {
+        return getStringExtra(EXTRA_BUTTON_TYPE)
+    }
 
-        if (appWidgetId != 0) {
-            with(sharedPref) {
-                delete(getStudentWidgetKey(appWidgetId))
-                delete(getDateWidgetKey(appWidgetId))
-                delete(getThemeWidgetKey(appWidgetId))
-                delete(getCurrentThemeWidgetKey(appWidgetId))
-            }
+    private fun Intent.getWidgetIds(): IntArray? {
+        return getIntArrayExtra(EXTRA_APPWIDGET_IDS)
+    }
+
+    private fun Intent.getToggledWidgetId(): Int? {
+        val toggledWidgetId = getIntExtra(EXTRA_TOGGLED_WIDGET_ID, INVALID_APPWIDGET_ID)
+        return toggledWidgetId.takeIf { it != INVALID_APPWIDGET_ID }
+    }
+
+    private fun reportChangedDay(buttonType: String) {
+        if (buttonType.isNotBlank()) {
+            analytics.logEvent("changed_timetable_widget_day", "button" to buttonType)
         }
     }
 
-    @SuppressLint("DefaultLocale")
-    private fun updateWidget(
-        context: Context,
-        appWidgetId: Int,
-        date: LocalDate,
-        student: Student?
+    private fun updateSavedWidgetDate(widgetId: Int, buttonType: String) {
+        val savedDate = getSavedWidgetDate(widgetId)
+        val newDate = savedDate?.let { getNewDate(it, widgetId, buttonType) }
+            ?: getWidgetDefaultDateToLoad(widgetId)
+        setWidgetDate(widgetId, newDate)
+    }
+
+    private fun getSavedWidgetDate(widgetId: Int): LocalDate? {
+        val epochDay = sharedPref.getLong(getDateWidgetKey(widgetId), 0)
+        return if (epochDay == 0L) null else LocalDate.ofEpochDay(epochDay)
+    }
+
+    private fun getNewDate(
+        currentDate: LocalDate,
+        widgetId: Int,
+        selectedButton: String
+    ): LocalDate {
+        return when (selectedButton) {
+            BUTTON_NEXT -> currentDate.nextSchoolDay
+            BUTTON_PREV -> currentDate.previousSchoolDay
+            else -> getWidgetDefaultDateToLoad(widgetId)
+        }
+    }
+
+    private fun setWidgetDate(widgetId: Int, dateToSet: LocalDate) {
+        val widgetDateKey = getDateWidgetKey(widgetId)
+        sharedPref.putLong(widgetDateKey, dateToSet.toEpochDay(), true)
+    }
+
+    private fun getWidgetDefaultDateToLoad(widgetId: Int): LocalDate {
+        val lastLessonEndDateTime = getLastLessonDateTime(widgetId)
+
+        val todayDate = LocalDate.now()
+        val isLastLessonToday = lastLessonEndDateTime.toLocalDate() == todayDate
+        val isEndOfLessons = LocalDateTime.now() > lastLessonEndDateTime
+
+        return if (isLastLessonToday && isEndOfLessons) {
+            todayDate.nextSchoolDay
+        } else {
+            todayDate.nextOrSameSchoolDay
+        }
+    }
+
+    private fun getLastLessonDateTime(widgetId: Int): LocalDateTime {
+        val lastLessonTimestamp = sharedPref
+            .getLong(getTodayLastLessonEndDateTimeWidgetKey(widgetId), 0)
+        return LocalDateTime.ofEpochSecond(lastLessonTimestamp, 0, ZoneOffset.UTC)
+    }
+
+    private suspend fun updateWidgetLayout(
+        context: Context, widgetId: Int
     ) {
-        val savedConfigureTheme = sharedPref.getLong(getThemeWidgetKey(appWidgetId), 0)
-        val isSystemDarkMode =
-            context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        var currentTheme = 0L
-        var layoutId = R.layout.widget_timetable
+        val widgetRemoteViews = RemoteViews(context.packageName, R.layout.widget_timetable)
 
-        if (savedConfigureTheme == 1L || (savedConfigureTheme == 2L && isSystemDarkMode)) {
-            currentTheme = 1L
-            layoutId = R.layout.widget_timetable_dark
-        }
+        // Apply the click action intent
+        val appIntent = createPendingAppIntent(context)
+        widgetRemoteViews.setPendingIntentTemplate(R.id.timetableWidgetList, appIntent)
 
-        val nextNavIntent = createNavIntent(context, appWidgetId, appWidgetId, BUTTON_NEXT)
-        val prevNavIntent = createNavIntent(context, -appWidgetId, appWidgetId, BUTTON_PREV)
+        // Display saved date
+        val date = getSavedWidgetDate(widgetId) ?: getWidgetDefaultDateToLoad(widgetId)
+        val formattedDate = date.toFormattedString("EEE, dd.MM").capitalise()
+        widgetRemoteViews.setTextViewText(R.id.timetableWidgetDate, formattedDate)
+
+        // Apply intents to the date switcher buttons
+        val nextNavIntent = createNavButtonIntent(context, widgetId, widgetId, BUTTON_NEXT)
+        val prevNavIntent = createNavButtonIntent(context, -widgetId, widgetId, BUTTON_PREV)
         val resetNavIntent =
-            createNavIntent(context, Int.MAX_VALUE - appWidgetId, appWidgetId, BUTTON_RESET)
-        val adapterIntent = Intent(context, TimetableWidgetService::class.java)
-            .apply {
-                putExtra(EXTRA_APPWIDGET_ID, appWidgetId)
-                //make Intent unique
-                action = appWidgetId.toString()
-            }
-        val accountIntent = PendingIntent.getActivity(
-            context,
-            -Int.MAX_VALUE + appWidgetId,
-            Intent(context, TimetableWidgetConfigureActivity::class.java).apply {
-                addFlags(FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK)
-                putExtra(EXTRA_APPWIDGET_ID, appWidgetId)
-                putExtra(EXTRA_FROM_PROVIDER, true)
-            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
-
-        )
-        val appIntent = PendingIntent.getActivity(
-            context,
-            TIMETABLE_PENDING_INTENT_ID,
-            SplashActivity.getStartIntent(context, Destination.Timetable()),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
-        )
-
-        val remoteView = RemoteViews(context.packageName, layoutId).apply {
-            setEmptyView(R.id.timetableWidgetList, R.id.timetableWidgetEmpty)
-            setTextViewText(
-                R.id.timetableWidgetDate,
-                date.toFormattedString("EEEE, dd.MM").capitalise()
-            )
-            setTextViewText(
-                R.id.timetableWidgetName,
-                student?.nickOrName ?: context.getString(R.string.all_no_data)
-            )
-
-            student?.let {
-                setImageViewBitmap(R.id.timetableWidgetAccount, context.createAvatarBitmap(it))
-            }
-
-            setRemoteAdapter(R.id.timetableWidgetList, adapterIntent)
+            createNavButtonIntent(context, Int.MAX_VALUE - widgetId, widgetId, BUTTON_RESET)
+        widgetRemoteViews.run {
             setOnClickPendingIntent(R.id.timetableWidgetNext, nextNavIntent)
             setOnClickPendingIntent(R.id.timetableWidgetPrev, prevNavIntent)
             setOnClickPendingIntent(R.id.timetableWidgetDate, resetNavIntent)
-            setOnClickPendingIntent(R.id.timetableWidgetName, resetNavIntent)
-            setOnClickPendingIntent(R.id.timetableWidgetAccount, accountIntent)
-            setPendingIntentTemplate(R.id.timetableWidgetList, appIntent)
         }
 
-        with(sharedPref) {
-            putLong(getCurrentThemeWidgetKey(appWidgetId), currentTheme)
-            putLong(getDateWidgetKey(appWidgetId), date.toEpochDay(), true)
+        // Setup the lesson list adapter
+        val lessonListAdapterIntent = createLessonListAdapterIntent(context, widgetId)
+        // --- Ensure the selected date is stored in the shared preferences,
+        // --- on which the TimetableWidgetFactory relies
+        setWidgetDate(widgetId, date)
+        // ---
+        widgetRemoteViews.apply {
+            setEmptyView(R.id.timetableWidgetList, R.id.timetableWidgetEmpty)
+            setRemoteAdapter(R.id.timetableWidgetList, lessonListAdapterIntent)
         }
 
+        // Setup profile picture
+        getWidgetStudent(widgetId)?.let { student ->
+            setupAccountView(context, student, widgetRemoteViews, widgetId)
+        }
+
+        // Apply updates
         with(appWidgetManager) {
-            updateAppWidget(appWidgetId, remoteView)
-            notifyAppWidgetViewDataChanged(appWidgetId, R.id.timetableWidgetList)
-            Timber.d("TimetableWidgetProvider updated")
+            partiallyUpdateAppWidget(widgetId, widgetRemoteViews)
+            notifyAppWidgetViewDataChanged(widgetId, R.id.timetableWidgetList)
         }
+
+        Timber.d("TimetableWidgetProvider updated")
     }
 
-    private fun createNavIntent(
-        context: Context,
-        code: Int,
-        appWidgetId: Int,
-        buttonType: String
+    private fun createPendingAppIntent(context: Context) = PendingIntent.getActivity(
+        context, TIMETABLE_PENDING_INTENT_ID,
+        SplashActivity.getStartIntent(context, Destination.Timetable()),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
+    )
+
+    private fun createNavButtonIntent(
+        context: Context, code: Int, appWidgetId: Int, buttonType: String
     ) = PendingIntent.getBroadcast(
-        context,
-        code,
-        Intent(context, TimetableWidgetProvider::class.java).apply {
+        context, code, Intent(context, TimetableWidgetProvider::class.java).apply {
             action = ACTION_APPWIDGET_UPDATE
             putExtra(EXTRA_BUTTON_TYPE, buttonType)
             putExtra(EXTRA_TOGGLED_WIDGET_ID, appWidgetId)
-        },
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
+        }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
     )
+
+    private fun createLessonListAdapterIntent(context: Context, widgetId: Int) =
+        Intent(context, TimetableWidgetService::class.java).apply {
+            putExtra(EXTRA_APPWIDGET_ID, widgetId)
+            action = widgetId.toString() //make Intent unique
+        }
+
+    private suspend fun getWidgetStudent(widgetId: Int): Student? {
+        val studentId = sharedPref.getLong(getStudentWidgetKey(widgetId), 0)
+        return getStudent(studentId, widgetId)
+    }
 
     private suspend fun getStudent(studentId: Long, appWidgetId: Int) = try {
         val students = studentRepository.getSavedStudents(false)
@@ -245,6 +252,7 @@ class TimetableWidgetProvider : HiltBroadcastReceiver() {
                     sharedPref.putLong(getStudentWidgetKey(appWidgetId), it.id)
                 }
             }
+
             else -> null
         }
     } catch (e: Exception) {
@@ -254,28 +262,64 @@ class TimetableWidgetProvider : HiltBroadcastReceiver() {
         null
     }
 
-    private fun Context.createAvatarBitmap(student: Student): Bitmap {
-        val avatarColor = if (student.avatarColor == -2937041L) {
-            getCompatColor(R.color.colorPrimaryLight).toLong()
-        } else {
-            student.avatarColor
+    private fun setupAccountView(
+        context: Context, student: Student, remoteViews: RemoteViews, widgetId: Int
+    ) {
+        val accountInitials = getAccountInitials(student.nickOrName)
+        val accountPickerPendingIntent = createAccountPickerPendingIntent(context, widgetId)
+
+        getAvatarBackgroundBitmap(context, student.avatarColor)?.let {
+            remoteViews.setImageViewBitmap(R.id.timetableWidgetAccountBackground, it)
         }
-        val avatarDrawable = createNameInitialsDrawable(student.nickOrName, avatarColor, 0.5f)
 
-        val avatarBitmap =
-            if (avatarDrawable.intrinsicWidth <= 0 || avatarDrawable.intrinsicHeight <= 0) {
-                Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-            } else {
-                Bitmap.createBitmap(
-                    avatarDrawable.intrinsicWidth,
-                    avatarDrawable.intrinsicHeight,
-                    Bitmap.Config.ARGB_8888
-                )
+        remoteViews.apply {
+            setTextViewText(R.id.timetableWidgetAccountInitials, accountInitials)
+            setOnClickPendingIntent(R.id.timetableWidgetAccount, accountPickerPendingIntent)
+        }
+    }
+
+    private fun getAccountInitials(name: String): String {
+        val firstLetters = name.split(" ").mapNotNull { it.firstOrNull() }
+        return firstLetters.joinToString(separator = "").uppercase()
+    }
+
+    private fun createAccountPickerPendingIntent(context: Context, widgetId: Int) =
+        PendingIntent.getActivity(
+            context,
+            -Int.MAX_VALUE + widgetId,
+            Intent(context, TimetableWidgetConfigureActivity::class.java).apply {
+                addFlags(FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK)
+                putExtra(EXTRA_APPWIDGET_ID, widgetId)
+                putExtra(EXTRA_FROM_PROVIDER, true)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntentCompat.FLAG_IMMUTABLE
+        )
+
+    private fun getAvatarBackgroundBitmap(context: Context, avatarColor: Long): Bitmap? {
+        val avatarDrawableResource = R.drawable.background_timetable_widget_avatar
+        return AppCompatResources.getDrawable(context, avatarDrawableResource)?.let { drawable ->
+            val screenDensity = context.resources.displayMetrics.density
+            val avatarSize = (48 * screenDensity).toInt()
+            DrawableCompat.wrap(drawable).run {
+                DrawableCompat.setTint(this, avatarColor.toInt())
+                toBitmap(avatarSize, avatarSize)
             }
+        }
+    }
 
-        val canvas = Canvas(avatarBitmap)
-        avatarDrawable.setBounds(0, 0, canvas.width, canvas.height)
-        avatarDrawable.draw(canvas)
-        return avatarBitmap
+    private fun onWidgetDeleted(intent: Intent) {
+        val deletedWidgetId = intent.getWidgetId()
+        deleteWidgetPreferences(deletedWidgetId)
+    }
+
+    private fun Intent.getWidgetId(): Int {
+        return getIntExtra(EXTRA_APPWIDGET_ID, INVALID_APPWIDGET_ID)
+    }
+
+    private fun deleteWidgetPreferences(widgetId: Int) {
+        with(sharedPref) {
+            delete(getStudentWidgetKey(widgetId))
+            delete(getDateWidgetKey(widgetId))
+        }
     }
 }

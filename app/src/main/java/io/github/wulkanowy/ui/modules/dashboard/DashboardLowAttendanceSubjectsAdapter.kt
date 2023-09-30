@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.AttendanceSummary
 import io.github.wulkanowy.databinding.SubitemDashboardLowAttendanceSubjectsBinding
+import io.github.wulkanowy.ui.modules.dashboard.adapters.DashboardAdapter
 import io.github.wulkanowy.utils.calculatePercentage
 import io.github.wulkanowy.utils.getThemeAttrColor
 import kotlin.math.roundToInt
