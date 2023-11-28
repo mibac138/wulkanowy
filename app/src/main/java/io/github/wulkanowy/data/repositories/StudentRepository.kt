@@ -11,11 +11,9 @@ import io.github.wulkanowy.data.db.entities.StudentName
 import io.github.wulkanowy.data.db.entities.StudentNickAndAvatar
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import io.github.wulkanowy.data.exceptions.NoCurrentStudentException
-import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.mappers.mapToPojo
 import io.github.wulkanowy.data.pojos.RegisterUser
 import io.github.wulkanowy.sdk.Sdk
-import io.github.wulkanowy.utils.AppInfo
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,11 +57,22 @@ class StudentRepository @Inject constructor(
         .getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
         .mapToPojo(password)
 
-    suspend fun getSavedStudents(): List<StudentWithSemesters> =
-        studentDb.loadStudentsWithSemesters()
+    suspend fun getSavedStudents(): List<StudentWithSemesters> {
+        return studentDb.loadStudentsWithSemesters().map { (student, semesters) ->
+            StudentWithSemesters(
+                student = student,
+                semesters = semesters,
+            )
+        }
+    }
 
     suspend fun getSavedStudentById(id: Long): StudentWithSemesters? =
-        studentDb.loadStudentWithSemestersById(id)
+        studentDb.loadStudentWithSemestersById(id).let { res ->
+            StudentWithSemesters(
+                student = res.keys.firstOrNull() ?: return null,
+                semesters = res.values.first(),
+            )
+        }
 
     suspend fun getStudentById(id: Long): Student =
         studentDb.loadById(id) ?: throw NoCurrentStudentException()
