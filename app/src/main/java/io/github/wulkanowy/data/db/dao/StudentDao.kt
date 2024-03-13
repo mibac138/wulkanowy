@@ -29,9 +29,6 @@ abstract class StudentDao {
     @Update(entity = Student::class)
     abstract suspend fun update(studentName: StudentName)
 
-    @Update
-    abstract suspend fun update(student: Student)
-
     @Query("SELECT * FROM Students WHERE is_current = 1")
     abstract suspend fun loadCurrent(): Student?
 
@@ -40,9 +37,6 @@ abstract class StudentDao {
 
     @Query("SELECT * FROM Students")
     abstract suspend fun loadAll(): List<Student>
-
-    @Query("SELECT EXISTS(SELECT * FROM Students WHERE email = :email)")
-    abstract suspend fun isEmailUsed(email: String): Boolean
 
     @Transaction
     @Query("SELECT * FROM Students JOIN Semesters ON Students.student_id = Semesters.student_id AND Students.class_id = Semesters.class_id")

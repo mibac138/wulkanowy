@@ -221,5 +221,6 @@ class GetMailboxByStudentUseCaseTest {
         symbol = "",
         userLoginId = 1,
         userName = userName,
+        password = ""
     )
 }

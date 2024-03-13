@@ -86,7 +86,7 @@ class StudentRepository @Inject constructor(
         val students = studentsWithSemesters.map { it.student }
             .map {
                 passwordRepository.savePassword(it)
-                it.copy(password = "")
+                it.apply { password = "" }
             }
             .mapIndexed { index, student ->
                 if (index == 0) {
