@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.viewbinding.ViewBinding
 import com.google.android.material.elevation.SurfaceColors
-import io.github.wulkanowy.ui.modules.auth.AuthDialog
 import io.github.wulkanowy.utils.AnalyticsHelper
 import io.github.wulkanowy.utils.lifecycleAwareVariable
 import javax.inject.Inject
@@ -28,8 +27,16 @@ abstract class BaseDialogFragment<VB : ViewBinding> : DialogFragment(), BaseView
         Toast.makeText(context, text, Toast.LENGTH_LONG).show()
     }
 
-    override fun showExpiredDialog() {
-        (activity as? BaseActivity<*, *>)?.showExpiredDialog()
+    override fun showExpiredCredentialsDialog() {
+        (activity as? BaseActivity<*, *>)?.showExpiredCredentialsDialog()
+    }
+
+    override fun onCaptchaVerificationRequired(url: String?) {
+        (activity as? BaseActivity<*, *>)?.onCaptchaVerificationRequired(url)
+    }
+
+    override fun showDecryptionFailedDialog() {
+        (activity as? BaseActivity<*, *>)?.showDecryptionFailedDialog()
     }
 
     override fun openClearLoginView() {
@@ -41,7 +48,7 @@ abstract class BaseDialogFragment<VB : ViewBinding> : DialogFragment(), BaseView
     }
 
     override fun showAuthDialog() {
-        AuthDialog.newInstance().show(childFragmentManager, "auth_dialog")
+        (activity as? BaseActivity<*, *>)?.showAuthDialog()
     }
 
     override fun showErrorDetailsDialog(error: Throwable) {

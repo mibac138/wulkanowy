@@ -1,7 +1,7 @@
 package io.github.wulkanowy.data.repositories
 
 import androidx.room.withTransaction
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.dao.StudentDao
@@ -14,19 +14,21 @@ import io.github.wulkanowy.data.exceptions.NoCurrentStudentException
 import io.github.wulkanowy.data.mappers.mapToPojo
 import io.github.wulkanowy.data.pojos.RegisterUser
 import io.github.wulkanowy.sdk.Sdk
+import io.github.wulkanowy.utils.DispatchersProvider
+import io.github.wulkanowy.utils.security.Scrambler
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class StudentRepository @Inject constructor(
+    private val dispatchers: DispatchersProvider,
     private val studentDb: StudentDao,
     private val semesterDb: SemesterDao,
-    private val authDb: AuthDataRepository,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val appDatabase: AppDatabase,
+    private val scrambler: Scrambler,
 ) {
-
-    suspend fun isStudentSaved() = getSavedStudents().isNotEmpty()
 
     suspend fun isCurrentStudentSet() = studentDb.loadCurrent()?.isCurrent ?: false
 
@@ -34,7 +36,7 @@ class StudentRepository @Inject constructor(
         pin: String,
         symbol: String,
         token: String
-    ): RegisterUser = sdk.initUnauthorized()
+    ): RegisterUser = wulkanowySdkFactory.create()
         .getStudentsFromHebe(token, pin, symbol, "")
         .mapToPojo(null)
 
@@ -44,7 +46,7 @@ class StudentRepository @Inject constructor(
         scrapperBaseUrl: String,
         domainSuffix: String,
         symbol: String
-    ): RegisterUser = sdk.initUnauthorized()
+    ): RegisterUser = wulkanowySdkFactory.create()
         .getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, domainSuffix, symbol)
         .mapToPojo(password)
 
@@ -53,53 +55,76 @@ class StudentRepository @Inject constructor(
         password: String,
         scrapperBaseUrl: String,
         symbol: String
-    ): RegisterUser = sdk.initUnauthorized()
+    ): RegisterUser = wulkanowySdkFactory.create()
         .getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
         .mapToPojo(password)
 
-    suspend fun getSavedStudents(): List<StudentWithSemesters> {
+    suspend fun getSavedStudents(decryptPass: Boolean = true): List<StudentWithSemesters> {
         return studentDb.loadStudentsWithSemesters().map { (student, semesters) ->
             StudentWithSemesters(
-                student = student,
+                student = student.apply {
+                    if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
+                        student.password = withContext(dispatchers.io) {
+                            scrambler.decrypt(student.password)
+                        }
+                    }
+                },
                 semesters = semesters,
             )
         }
     }
 
-    suspend fun getSavedStudentById(id: Long): StudentWithSemesters? =
+    suspend fun getSavedStudentById(id: Long, decryptPass: Boolean = true): StudentWithSemesters? =
         studentDb.loadStudentWithSemestersById(id).let { res ->
             StudentWithSemesters(
                 student = res.keys.firstOrNull() ?: return null,
                 semesters = res.values.first(),
             )
+        }.apply {
+            if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
+                student.password = withContext(dispatchers.io) {
+                    scrambler.decrypt(student.password)
+                }
+            }
         }
 
-    suspend fun getStudentById(id: Long): Student =
-        studentDb.loadById(id) ?: throw NoCurrentStudentException()
+    suspend fun getStudentById(id: Long, decryptPass: Boolean = true): Student {
+        val student = studentDb.loadById(id) ?: throw NoCurrentStudentException()
 
-    suspend fun getCurrentStudent(): Student =
-        studentDb.loadCurrent() ?: throw NoCurrentStudentException()
+        if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
+            student.password = withContext(dispatchers.io) {
+                scrambler.decrypt(student.password)
+            }
+        }
+        return student
+    }
+
+    suspend fun getCurrentStudent(decryptPass: Boolean = true): Student {
+        val student = studentDb.loadCurrent() ?: throw NoCurrentStudentException()
+
+        if (decryptPass && Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
+            student.password = withContext(dispatchers.io) {
+                scrambler.decrypt(student.password)
+            }
+        }
+        return student
+    }
 
     suspend fun saveStudents(studentsWithSemesters: List<StudentWithSemesters>) {
         val semesters = studentsWithSemesters.flatMap { it.semesters }
         val students = studentsWithSemesters.map { it.student }
-            .map { student ->
-                if (Sdk.Mode.valueOf(student.loginMode) != Sdk.Mode.HEBE) {
-                    student.copy().also {
-                        it.nick = student.nick
-                        it.avatarColor = student.avatarColor
-
-                        @Suppress("DEPRECATION")
-                        authDb.savePassword(student, student.password)
+            .map {
+                it.apply {
+                    if (Sdk.Mode.valueOf(it.loginMode) != Sdk.Mode.HEBE) {
+                        password = withContext(dispatchers.io) {
+                            scrambler.encrypt(password)
+                        }
                     }
-                } else student
+                }
             }
             .mapIndexed { index, student ->
                 if (index == 0) {
-                    student.copy(isCurrent = true).apply {
-                        nick = student.nick
-                        avatarColor = student.avatarColor
-                    }
+                    student.copy(isCurrent = true).apply { avatarColor = student.avatarColor }
                 } else student
             }
 
@@ -114,27 +139,20 @@ class StudentRepository @Inject constructor(
         studentDb.switchCurrent(studentWithSemesters.student.id)
     }
 
-    suspend fun logoutStudent(student: Student) {
-        studentDb.delete(student)
-        if (!studentDb.isEmailUsed(student.email)) {
-            authDb.removePassword(student)
-        }
-    }
+    suspend fun logoutStudent(student: Student) = studentDb.delete(student)
 
     suspend fun updateStudentNickAndAvatar(studentNickAndAvatar: StudentNickAndAvatar) =
         studentDb.update(studentNickAndAvatar)
 
-    suspend fun isOneUniqueStudent() = getSavedStudents()
+    suspend fun isOneUniqueStudent() = getSavedStudents(false)
         .distinctBy { it.student.studentName }.size == 1
 
     suspend fun authorizePermission(student: Student, semester: Semester, pesel: String) =
-        sdk.init(student)
-            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+        wulkanowySdkFactory.create(student, semester)
             .authorizePermission(pesel)
 
     suspend fun refreshStudentName(student: Student, semester: Semester) {
-        val newCurrentApiStudent = sdk.init(student)
-            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+        val newCurrentApiStudent = wulkanowySdkFactory.create(student, semester)
             .getCurrentStudent() ?: return
 
         val studentName = StudentName(
@@ -142,5 +160,16 @@ class StudentRepository @Inject constructor(
         ).apply { id = student.id }
 
         studentDb.update(studentName)
+    }
+
+    suspend fun deleteStudentsAssociatedWithAccount(student: Student) {
+        studentDb.deleteByEmailAndUserName(student.email, student.userName)
+    }
+
+    suspend fun clearAll() {
+        withContext(dispatchers.io) {
+            scrambler.clearKeyPair()
+            appDatabase.clearAllTables()
+        }
     }
 }

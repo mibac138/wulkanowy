@@ -1,15 +1,16 @@
 package io.github.wulkanowy.data.repositories
 
 import android.content.Context
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.createWulkanowySdkFactoryMock
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.SharedPrefProvider
 import io.github.wulkanowy.data.db.dao.MailboxDao
 import io.github.wulkanowy.data.db.dao.MessageAttachmentDao
 import io.github.wulkanowy.data.db.dao.MessagesDao
+import io.github.wulkanowy.data.db.dao.MutedMessageSendersDao
 import io.github.wulkanowy.data.db.entities.Message
 import io.github.wulkanowy.data.db.entities.MessageWithAttachment
-import io.github.wulkanowy.data.db.entities.Student
+import io.github.wulkanowy.data.db.entities.MutedMessageSender
 import io.github.wulkanowy.data.enums.MessageFolder
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.toFirstResult
@@ -20,12 +21,17 @@ import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Folder
 import io.github.wulkanowy.utils.AutoRefreshHelper
 import io.github.wulkanowy.utils.Status
-import io.github.wulkanowy.utils.init
 import io.github.wulkanowy.utils.status
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.checkEquals
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.impl.annotations.SpyK
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.spyk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -39,14 +45,16 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class MessageRepositoryTest {
 
-    @SpyK
-    private var sdk = Sdk()
+    private var sdk = spyk<Sdk>()
+    private val wulkanowySdkFactory = createWulkanowySdkFactoryMock(sdk)
 
     @MockK
     private lateinit var messageDb: MessagesDao
+
+    @MockK
+    private lateinit var mutesDb: MutedMessageSendersDao
 
     @MockK
     private lateinit var messageAttachmentDao: MessageAttachmentDao
@@ -76,17 +84,24 @@ class MessageRepositoryTest {
     fun setUp() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
-        val sdkFactory = mockk<SdkFactory>()
-        val studentSlot = slot<Student>()
-        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
-            sdk.init(studentSlot.captured)
-        }
-        coEvery { sdkFactory.initUnauthorized() } returns sdk
-
+        coEvery { mutesDb.checkMute(any()) } returns false
+        coEvery {
+            messageDb.loadMessagesWithMutedAuthor(
+                mailboxKey = any(),
+                folder = any()
+            )
+        } returns flowOf(emptyList())
+        coEvery {
+            messageDb.loadMessagesWithMutedAuthor(
+                folder = any(),
+                email = any()
+            )
+        } returns flowOf(emptyList())
         repository = MessageRepository(
             messagesDb = messageDb,
+            mutedMessageSendersDao = mutesDb,
             messageAttachmentDao = messageAttachmentDao,
-            sdk = sdkFactory,
+            wulkanowySdkFactory = wulkanowySdkFactory,
             context = context,
             refreshHelper = refreshHelper,
             sharedPrefProvider = sharedPrefProvider,
@@ -97,7 +112,7 @@ class MessageRepositoryTest {
     }
 
     @Test
-    fun `get messages when fetched completely new message without notify`() = runBlocking {
+    fun `get messages when fetched completely new message without notify`() = runTest {
         coEvery { mailboxDao.loadAll(any()) } returns listOf(mailbox)
         every { messageDb.loadAll(mailbox.globalKey, any()) } returns flowOf(emptyList())
         coEvery { sdk.getMessages(Folder.RECEIVED, any()) } returns listOf(
@@ -106,8 +121,7 @@ class MessageRepositoryTest {
                 readBy = 10,
             )
         )
-        coEvery { messageDb.deleteAll(any()) } just Runs
-        coEvery { messageDb.insertAll(any()) } returns listOf()
+        coEvery { messageDb.removeOldAndSaveNew(any(), any()) } just Runs
 
         val res = repository.getMessages(
             student = student,
@@ -118,12 +132,14 @@ class MessageRepositoryTest {
         ).toFirstResult()
 
         assertEquals(null, res.errorOrNull)
-        coVerify(exactly = 1) { messageDb.deleteAll(withArg { checkEquals(emptyList<Message>()) }) }
         coVerify {
-            messageDb.insertAll(withArg {
-                assertEquals(4, it.single().messageId)
-                assertTrue(it.single().isNotified)
-            })
+            messageDb.removeOldAndSaveNew(
+                oldItems = withArg { checkEquals(emptyList<Message>()) },
+                newItems = withArg {
+                    assertEquals(4, it.single().messageId)
+                    assertTrue(it.single().isNotified)
+                },
+            )
         }
     }
 
@@ -140,7 +156,11 @@ class MessageRepositoryTest {
     @Test
     fun `get message when content already in db`() {
         val testMessage = getMessageEntity(123, "Test", false)
-        val messageWithAttachment = MessageWithAttachment(testMessage, emptyList())
+        val messageWithAttachment = MessageWithAttachment(
+            testMessage,
+            emptyList(),
+            MutedMessageSender("Jan Kowalski - P - (WULKANOWY)")
+        )
 
         coEvery { messageDb.loadMessageWithAttachment("v4") } returns flowOf(
             messageWithAttachment
@@ -158,8 +178,16 @@ class MessageRepositoryTest {
         val testMessage = getMessageEntity(123, "", true)
         val testMessageWithContent = testMessage.copy().apply { content = "Test" }
 
-        val mWa = MessageWithAttachment(testMessage, emptyList())
-        val mWaWithContent = MessageWithAttachment(testMessageWithContent, emptyList())
+        val mWa = MessageWithAttachment(
+            testMessage,
+            emptyList(),
+            MutedMessageSender("Jan Kowalski - P - (WULKANOWY)")
+        )
+        val mWaWithContent = MessageWithAttachment(
+            testMessageWithContent,
+            emptyList(),
+            MutedMessageSender("Jan Kowalski - P - (WULKANOWY)")
+        )
 
         coEvery {
             messageDb.loadMessageWithAttachment("v4")

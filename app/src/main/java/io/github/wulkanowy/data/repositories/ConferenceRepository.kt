@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.ConferenceDao
 import io.github.wulkanowy.data.db.entities.Conference
 import io.github.wulkanowy.data.db.entities.Semester
@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class ConferenceRepository @Inject constructor(
     private val conferenceDb: ConferenceDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 
@@ -44,19 +44,18 @@ class ConferenceRepository @Inject constructor(
             conferenceDb.loadAll(semester.diaryId, student.studentId, startDate)
         },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            wulkanowySdkFactory.create(student, semester)
                 .getConferences()
                 .mapToEntities(semester)
                 .filter { it.date >= startDate }
         },
         saveFetchResult = { old, new ->
-            val conferencesToSave = (new uniqueSubtract old).onEach {
-                if (notify) it.isNotified = false
-            }
-
-            conferenceDb.deleteAll(old uniqueSubtract new)
-            conferenceDb.insertAll(conferencesToSave)
+            conferenceDb.removeOldAndSaveNew(
+                oldItems = old uniqueSubtract new,
+                newItems = (new uniqueSubtract old).onEach {
+                    if (notify) it.isNotified = false
+                },
+            )
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester))
         }
     )

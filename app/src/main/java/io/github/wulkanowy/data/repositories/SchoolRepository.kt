@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.SchoolDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -15,7 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class SchoolRepository @Inject constructor(
     private val schoolDb: SchoolDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 
@@ -38,17 +38,16 @@ class SchoolRepository @Inject constructor(
         },
         query = { schoolDb.load(semester.studentId, semester.classId) },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            wulkanowySdkFactory.create(student, semester)
                 .getSchool()
                 .mapToEntity(semester)
         },
         saveFetchResult = { old, new ->
             if (old != null && new != old) {
-                with(schoolDb) {
-                    deleteAll(listOf(old))
-                    insertAll(listOf(new))
-                }
+                schoolDb.removeOldAndSaveNew(
+                    oldItems = listOf(old),
+                    newItems = listOf(new)
+                )
             } else if (old == null) {
                 schoolDb.insertAll(listOf(new))
             }

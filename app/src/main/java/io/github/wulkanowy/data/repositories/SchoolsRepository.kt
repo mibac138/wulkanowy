@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.api.SchoolsService
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.seconds
 class SchoolsRepository @Inject constructor(
     private val integrityHelper: IntegrityHelper,
     private val schoolsService: SchoolsService,
-    private val sdkFactory: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
 ) {
 
     suspend fun logSchoolLogin(loginData: LoginData, students: List<StudentWithSemesters>) {
@@ -38,14 +38,9 @@ class SchoolsRepository @Inject constructor(
     private suspend fun logLogin(loginData: LoginData, student: Student, semester: Semester) {
         val requestId = UUID.randomUUID().toString()
         val token = integrityHelper.getIntegrityToken(requestId) ?: return
+        val updatedStudent = student.copy(password = loginData.password)
 
-        val schoolInfo = sdkFactory
-            .init(student)
-            .switchDiary(
-                diaryId = semester.diaryId,
-                kindergartenDiaryId = semester.kindergartenDiaryId,
-                schoolYear = semester.schoolYear
-            )
+        val schoolInfo = wulkanowySdkFactory.create(updatedStudent, semester)
             .getSchool()
 
         schoolsService.logLoginEvent(

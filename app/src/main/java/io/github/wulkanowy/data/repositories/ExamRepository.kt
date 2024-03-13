@@ -1,13 +1,17 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.ExamDao
 import io.github.wulkanowy.data.db.entities.Exam
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.networkBoundResource
-import io.github.wulkanowy.utils.*
+import io.github.wulkanowy.utils.AutoRefreshHelper
+import io.github.wulkanowy.utils.endExamsDay
+import io.github.wulkanowy.utils.getRefreshKey
+import io.github.wulkanowy.utils.startExamsDay
+import io.github.wulkanowy.utils.uniqueSubtract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import java.time.LocalDate
@@ -17,7 +21,7 @@ import javax.inject.Singleton
 @Singleton
 class ExamRepository @Inject constructor(
     private val examDb: ExamDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 
@@ -50,31 +54,32 @@ class ExamRepository @Inject constructor(
             )
         },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            wulkanowySdkFactory.create(student, semester)
                 .getExams(start.startExamsDay, start.endExamsDay)
                 .mapToEntities(semester)
         },
         saveFetchResult = { old, new ->
-            val examsToSave = (new uniqueSubtract old).onEach {
-                if (notify) it.isNotified = false
-            }
-
-            examDb.deleteAll(old uniqueSubtract new)
-            examDb.insertAll(examsToSave)
+            examDb.removeOldAndSaveNew(
+                oldItems = old uniqueSubtract new,
+                newItems = (new uniqueSubtract old).onEach {
+                    if (notify) it.isNotified = false
+                },
+            )
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester, start, end))
         },
         filterResult = { it.filter { item -> item.date in start..end } }
     )
 
-    fun getExamsFromDatabase(semester: Semester, start: LocalDate): Flow<List<Exam>> {
-        return examDb.loadAll(
-            diaryId = semester.diaryId,
-            studentId = semester.studentId,
-            from = start.startExamsDay,
-            end = start.endExamsDay
-        )
-    }
+    fun getExamsFromDatabase(
+        semester: Semester,
+        start: LocalDate,
+        end: LocalDate
+    ): Flow<List<Exam>> = examDb.loadAll(
+        diaryId = semester.diaryId,
+        studentId = semester.studentId,
+        from = start,
+        end = end,
+    )
 
     suspend fun updateExam(exam: List<Exam>) = examDb.updateAll(exam)
 }

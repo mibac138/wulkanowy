@@ -5,6 +5,6 @@ import androidx.room.migration.AutoMigrationSpec
 
 @DeleteColumn(
     tableName = "AdminMessages",
-    columnName = "type",
+    columnName = "is_dismissible",
 )
 class Migration58 : AutoMigrationSpec

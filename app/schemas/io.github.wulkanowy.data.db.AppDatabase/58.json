@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 58,
-    "identityHash": "1647ea7b5aabac099b71b5a6d0fa059e",
+    "identityHash": "cd1d4f8f2b6e3860fbc1de93d4f5ca42",
     "entities": [
       {
         "tableName": "Students",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scrapper_base_url` TEXT NOT NULL, `scrapper_domain_suffix` TEXT NOT NULL DEFAULT '', `mobile_base_url` TEXT NOT NULL, `login_type` TEXT NOT NULL, `login_mode` TEXT NOT NULL, `certificate_key` TEXT NOT NULL, `private_key` TEXT NOT NULL, `is_parent` INTEGER NOT NULL, `email` TEXT NOT NULL, `symbol` TEXT NOT NULL, `student_id` INTEGER NOT NULL, `user_login_id` INTEGER NOT NULL, `user_name` TEXT NOT NULL, `student_name` TEXT NOT NULL, `school_id` TEXT NOT NULL, `school_short` TEXT NOT NULL, `school_name` TEXT NOT NULL, `class_name` TEXT NOT NULL, `class_id` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `registration_date` INTEGER NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nick` TEXT NOT NULL, `avatar_color` INTEGER NOT NULL, `password` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scrapper_base_url` TEXT NOT NULL, `scrapper_domain_suffix` TEXT NOT NULL DEFAULT '', `mobile_base_url` TEXT NOT NULL, `login_type` TEXT NOT NULL, `login_mode` TEXT NOT NULL, `certificate_key` TEXT NOT NULL, `private_key` TEXT NOT NULL, `is_parent` INTEGER NOT NULL, `email` TEXT NOT NULL, `password` TEXT NOT NULL, `symbol` TEXT NOT NULL, `student_id` INTEGER NOT NULL, `user_login_id` INTEGER NOT NULL, `user_name` TEXT NOT NULL, `student_name` TEXT NOT NULL, `school_id` TEXT NOT NULL, `school_short` TEXT NOT NULL, `school_name` TEXT NOT NULL, `class_name` TEXT NOT NULL, `class_id` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `registration_date` INTEGER NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nick` TEXT NOT NULL, `avatar_color` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "scrapperBaseUrl",
@@ -60,6 +60,12 @@
           {
             "fieldPath": "email",
             "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "password",
+            "columnName": "password",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -151,12 +157,6 @@
             "fieldPath": "avatarColor",
             "columnName": "avatar_color",
             "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "password",
-            "columnName": "password",
-            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -2354,7 +2354,7 @@
       },
       {
         "tableName": "AdminMessages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `version_name` INTEGER, `version_max` INTEGER, `target_register_host` TEXT, `target_flavor` TEXT, `destination_url` TEXT, `priority` TEXT NOT NULL, `types` TEXT NOT NULL DEFAULT '[]', `is_dismissible` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `version_name` INTEGER, `version_max` INTEGER, `target_register_host` TEXT, `target_flavor` TEXT, `destination_url` TEXT, `priority` TEXT NOT NULL, `types` TEXT NOT NULL DEFAULT '[]', `is_ok_visible` INTEGER NOT NULL DEFAULT 0, `is_x_visible` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -2418,10 +2418,18 @@
             "defaultValue": "'[]'"
           },
           {
-            "fieldPath": "isDismissible",
-            "columnName": "is_dismissible",
+            "fieldPath": "isOkVisible",
+            "columnName": "is_ok_visible",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "isXVisible",
+            "columnName": "is_x_visible",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -2432,54 +2440,12 @@
         },
         "indices": [],
         "foreignKeys": []
-      },
-      {
-        "tableName": "StudentAuthData",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`email` TEXT NOT NULL, `version` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
-        "fields": [
-          {
-            "fieldPath": "email",
-            "columnName": "email",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "version",
-            "columnName": "version",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [
-          {
-            "name": "index_StudentAuthData_email",
-            "unique": true,
-            "columnNames": [
-              "email"
-            ],
-            "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_StudentAuthData_email` ON `${TABLE_NAME}` (`email`)"
-          }
-        ],
-        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1647ea7b5aabac099b71b5a6d0fa059e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd1d4f8f2b6e3860fbc1de93d4f5ca42')"
     ]
   }
 }

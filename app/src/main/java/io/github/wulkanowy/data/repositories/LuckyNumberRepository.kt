@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.LuckyNumberDao
 import io.github.wulkanowy.data.db.entities.LuckyNumber
 import io.github.wulkanowy.data.db.entities.Student
@@ -17,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class LuckyNumberRepository @Inject constructor(
     private val luckyNumberDb: LuckyNumberDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
 ) {
 
     private val saveFetchResultMutex = Mutex()
@@ -32,14 +32,18 @@ class LuckyNumberRepository @Inject constructor(
         shouldFetch = { it == null || forceRefresh },
         query = { luckyNumberDb.load(student.studentId, now()) },
         fetch = {
-            sdk.init(student).getLuckyNumber(student.schoolShortName)?.mapToEntity(student)
+            wulkanowySdkFactory.create(student)
+                .getLuckyNumber(student.schoolShortName)
+                ?.mapToEntity(student)
         },
-        saveFetchResult = { old, new ->
-            if (new != old) {
-                old?.let { luckyNumberDb.deleteAll(listOfNotNull(it)) }
-                luckyNumberDb.insertAll(listOfNotNull((new?.apply {
-                    if (notify) isNotified = false
-                })))
+        saveFetchResult = { oldLuckyNumber, newLuckyNumber ->
+            newLuckyNumber ?: return@networkBoundResource
+
+            if (newLuckyNumber != oldLuckyNumber) {
+                luckyNumberDb.removeOldAndSaveNew(
+                    oldItems = listOfNotNull(oldLuckyNumber),
+                    newItems = listOf(newLuckyNumber.apply { if (notify) isNotified = false }),
+                )
             }
         }
     )

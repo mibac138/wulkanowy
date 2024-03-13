@@ -9,9 +9,14 @@ import android.view.MenuItem
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
-import androidx.core.view.*
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -23,16 +28,32 @@ import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import io.github.wulkanowy.databinding.ActivityMainBinding
-import io.github.wulkanowy.databinding.DialogAdsConsentBinding
 import io.github.wulkanowy.ui.base.BaseActivity
 import io.github.wulkanowy.ui.modules.Destination
 import io.github.wulkanowy.ui.modules.account.accountquick.AccountQuickDialog
+import io.github.wulkanowy.ui.modules.auth.AuthDialog
+import io.github.wulkanowy.ui.modules.captcha.CaptchaDialog
 import io.github.wulkanowy.ui.modules.settings.appearance.menuorder.AppMenuItem
-import io.github.wulkanowy.utils.*
+import io.github.wulkanowy.utils.AnalyticsHelper
+import io.github.wulkanowy.utils.AppInfo
+import io.github.wulkanowy.utils.InAppReviewHelper
+import io.github.wulkanowy.utils.InAppUpdateHelper
+import io.github.wulkanowy.utils.createNameInitialsDrawable
+import io.github.wulkanowy.utils.dpToPx
+import io.github.wulkanowy.utils.nickOrName
+import io.github.wulkanowy.utils.safelyPopFragments
+import io.github.wulkanowy.utils.setOnViewChangeListener
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity<MainPresenter, ActivityMainBinding>(), MainView,
@@ -61,6 +82,8 @@ class MainActivity : BaseActivity<MainPresenter, ActivityMainBinding>(), MainVie
 
     private val navController =
         FragNavController(supportFragmentManager, R.id.main_fragment_container)
+
+    private val captchaVerificationEvent = MutableSharedFlow<String?>()
 
     companion object {
 
@@ -133,6 +156,7 @@ class MainActivity : BaseActivity<MainPresenter, ActivityMainBinding>(), MainVie
         initializeToolbar()
         initializeBottomNavigation(startMenuIndex, rootAppMenuItems)
         initializeNavController(startMenuIndex, rootUpdatedDestinations)
+        initializeCaptchaVerificationEvent()
     }
 
     private fun initializeNavController(
@@ -312,38 +336,25 @@ class MainActivity : BaseActivity<MainPresenter, ActivityMainBinding>(), MainVie
             .show()
     }
 
-    override fun showPrivacyPolicyDialog() {
-        val dialogAdsConsentBinding = DialogAdsConsentBinding.inflate(layoutInflater)
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.pref_ads_consent_title)
-            .setMessage(R.string.pref_ads_consent_description)
-            .setView(dialogAdsConsentBinding.root)
-            .show()
-
-        dialogAdsConsentBinding.adsConsentOver.setOnCheckedChangeListener { _, isChecked ->
-            dialogAdsConsentBinding.adsConsentPersonalised.isEnabled = isChecked
-        }
-
-        dialogAdsConsentBinding.adsConsentPersonalised.setOnClickListener {
-            presenter.onPrivacyAgree(true)
-            dialog.dismiss()
-        }
-
-        dialogAdsConsentBinding.adsConsentNonPersonalised.setOnClickListener {
-            presenter.onPrivacyAgree(false)
-            dialog.dismiss()
-        }
-
-        dialogAdsConsentBinding.adsConsentPrivacy.setOnClickListener { presenter.onPrivacySelected() }
-        dialogAdsConsentBinding.adsConsentCancel.setOnClickListener { dialog.cancel() }
+    @OptIn(FlowPreview::class)
+    private fun initializeCaptchaVerificationEvent() {
+        captchaVerificationEvent
+            .debounce(1.seconds)
+            .onEach { url ->
+                Timber.d("Showing captcha dialog for: $url")
+                showDialogFragment(CaptchaDialog.newInstance(url))
+            }
+            .launchIn(lifecycleScope)
     }
 
-    override fun openPrivacyPolicy() {
-        openInternetBrowser(
-            "https://wulkanowy.github.io/polityka-prywatnosci.html",
-            ::showMessage
-        )
+    override fun onCaptchaVerificationRequired(url: String?) {
+        lifecycleScope.launch {
+            captchaVerificationEvent.emit(url)
+        }
+    }
+
+    override fun showAuthDialog() {
+        showDialogFragment(AuthDialog.newInstance())
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -1,11 +1,10 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.createWulkanowySdkFactoryMock
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.TimetableAdditionalDao
 import io.github.wulkanowy.data.db.dao.TimetableDao
 import io.github.wulkanowy.data.db.dao.TimetableHeaderDao
-import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.toFirstResult
@@ -14,17 +13,15 @@ import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.services.alarm.TimetableNotificationSchedulerHelper
 import io.github.wulkanowy.utils.AutoRefreshHelper
-import io.github.wulkanowy.utils.init
 import io.mockk.MockKAnnotations
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.impl.annotations.SpyK
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.slot
+import io.mockk.spyk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -41,8 +38,8 @@ class TimetableRepositoryTest {
     @MockK(relaxed = true)
     private lateinit var timetableNotificationSchedulerHelper: TimetableNotificationSchedulerHelper
 
-    @SpyK
-    private var sdk = Sdk()
+    private var sdk = spyk<Sdk>()
+    private val wulkanowySdkFactory = createWulkanowySdkFactoryMock(sdk)
 
     @MockK
     private lateinit var timetableDb: TimetableDao
@@ -70,18 +67,12 @@ class TimetableRepositoryTest {
     fun initApi() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
-        val sdkFactory = mockk<SdkFactory>()
-        val studentSlot = slot<Student>()
-        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
-            sdk.init(studentSlot.captured)
-        }
-        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
         timetableRepository = TimetableRepository(
             timetableDb,
             timetableAdditionalDao,
             timetableHeaderDao,
-            sdkFactory,
+            wulkanowySdkFactory,
             timetableNotificationSchedulerHelper,
             refreshHelper
         )
@@ -118,8 +109,7 @@ class TimetableRepositoryTest {
             flowOf(remoteList.mapToEntities(semester)),
             flowOf(remoteList.mapToEntities(semester))
         )
-        coEvery { timetableDb.insertAll(any()) } returns listOf(1, 2, 3)
-        coEvery { timetableDb.deleteAll(any()) } just Runs
+        coEvery { timetableDb.removeOldAndSaveNew(any(), any()) } just Runs
 
         coEvery {
             timetableAdditionalDao.loadAll(
@@ -129,12 +119,10 @@ class TimetableRepositoryTest {
                 end = endDate
             )
         } returns flowOf(listOf())
-        coEvery { timetableAdditionalDao.deleteAll(emptyList()) } just Runs
-        coEvery { timetableAdditionalDao.insertAll(emptyList()) } returns listOf(1, 2, 3)
+        coEvery { timetableAdditionalDao.removeOldAndSaveNew(any(), any()) } just Runs
 
         coEvery { timetableHeaderDao.loadAll(1, 1, startDate, endDate) } returns flowOf(listOf())
-        coEvery { timetableHeaderDao.insertAll(emptyList()) } returns listOf(1, 2, 3)
-        coEvery { timetableHeaderDao.deleteAll(emptyList()) } just Runs
+        coEvery { timetableHeaderDao.removeOldAndSaveNew(any(), any()) } just Runs
 
         // execute
         val res = runBlocking {
@@ -152,8 +140,12 @@ class TimetableRepositoryTest {
         assertEquals(2, res.dataOrNull!!.lessons.size)
         coVerify { sdk.getTimetable(startDate, endDate) }
         coVerify { timetableDb.loadAll(1, 1, startDate, endDate) }
-        coVerify { timetableDb.insertAll(match { it.isEmpty() }) }
-        coVerify { timetableDb.deleteAll(match { it.isEmpty() }) }
+        coVerify {
+            timetableDb.removeOldAndSaveNew(
+                oldItems = match { it.isEmpty() },
+                newItems = match { it.isEmpty() },
+            )
+        }
     }
 
     private fun createTimetableRemote(

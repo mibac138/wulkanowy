@@ -4,12 +4,12 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SeekBarPreference
 import com.yariksoffice.lingver.Lingver
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.ui.base.BaseActivity
 import io.github.wulkanowy.ui.base.ErrorDialog
-import io.github.wulkanowy.ui.modules.auth.AuthDialog
 import io.github.wulkanowy.ui.modules.main.MainView
 import io.github.wulkanowy.utils.AppInfo
 import javax.inject.Inject
@@ -37,6 +37,15 @@ class AppearanceFragment : PreferenceFragmentCompat(),
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.scheme_preferences_appearance, rootKey)
+        val attendanceTargetPref =
+            findPreference<SeekBarPreference>(requireContext().getString(R.string.pref_key_attendance_target))!!
+        attendanceTargetPref.setOnPreferenceChangeListener { _, newValueObj ->
+            val newValue = (((newValueObj as Int).toDouble() + 2.5) / 5).toInt() * 5
+            attendanceTargetPref.value =
+                newValue.coerceIn(attendanceTargetPref.min, attendanceTargetPref.max)
+
+            false
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -63,8 +72,16 @@ class AppearanceFragment : PreferenceFragmentCompat(),
         (activity as? BaseActivity<*, *>)?.showMessage(text)
     }
 
-    override fun showExpiredDialog() {
-        (activity as? BaseActivity<*, *>)?.showExpiredDialog()
+    override fun showExpiredCredentialsDialog() {
+        (activity as? BaseActivity<*, *>)?.showExpiredCredentialsDialog()
+    }
+
+    override fun onCaptchaVerificationRequired(url: String?) {
+        (activity as? BaseActivity<*, *>)?.onCaptchaVerificationRequired(url)
+    }
+
+    override fun showDecryptionFailedDialog() {
+        (activity as? BaseActivity<*, *>)?.showDecryptionFailedDialog()
     }
 
     override fun showChangePasswordSnackbar(redirectUrl: String) {
@@ -80,7 +97,7 @@ class AppearanceFragment : PreferenceFragmentCompat(),
     }
 
     override fun showAuthDialog() {
-        AuthDialog.newInstance().show(childFragmentManager, "auth_dialog")
+        (activity as? BaseActivity<*, *>)?.showAuthDialog()
     }
 
     override fun onResume() {

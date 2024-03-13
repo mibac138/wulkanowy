@@ -1,18 +1,21 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.createWulkanowySdkFactoryMock
 import io.github.wulkanowy.data.db.dao.RecipientDao
-import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.getMailboxEntity
 import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.MailboxType
 import io.github.wulkanowy.utils.AutoRefreshHelper
-import io.github.wulkanowy.utils.init
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.impl.annotations.SpyK
+import io.mockk.just
+import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -21,8 +24,8 @@ import io.github.wulkanowy.sdk.pojo.Recipient as SdkRecipient
 
 class RecipientLocalTest {
 
-    @SpyK
-    private var sdk = Sdk()
+    private var sdk = spyk<Sdk>()
+    private val wulkanowySdkFactory = createWulkanowySdkFactoryMock(sdk)
 
     @MockK
     private lateinit var recipientDb: RecipientDao
@@ -65,20 +68,19 @@ class RecipientLocalTest {
     fun setUp() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
-        val sdkFactory = mockk<SdkFactory>()
-        val studentSlot = slot<Student>()
-        coEvery { sdkFactory.init(capture(studentSlot)) } coAnswers {
-            sdk.init(studentSlot.captured)
-        }
-        coEvery { sdkFactory.initUnauthorized() } returns mockk()
 
-        recipientRepository = RecipientRepository(recipientDb, sdkFactory, refreshHelper)
+        recipientRepository = RecipientRepository(recipientDb, wulkanowySdkFactory, refreshHelper)
     }
 
     @Test
     fun `load recipients when items already in database`() {
         // prepare
-        coEvery { recipientDb.loadAll(io.github.wulkanowy.data.db.entities.MailboxType.UNKNOWN, "v4") } returnsMany listOf(
+        coEvery {
+            recipientDb.loadAll(
+                io.github.wulkanowy.data.db.entities.MailboxType.UNKNOWN,
+                "v4"
+            )
+        } returnsMany listOf(
             remoteList.mapToEntities("v4"),
             remoteList.mapToEntities("v4")
         )
@@ -117,8 +119,7 @@ class RecipientLocalTest {
             emptyList(),
             remoteList.mapToEntities("v4")
         )
-        coEvery { recipientDb.insertAll(any()) } returns listOf(1, 2, 3)
-        coEvery { recipientDb.deleteAll(any()) } just Runs
+        coEvery { recipientDb.removeOldAndSaveNew(any(), any()) } just Runs
 
         // execute
         val res = runBlocking {
@@ -132,8 +133,12 @@ class RecipientLocalTest {
         // verify
         assertEquals(3, res.size)
         coVerify { sdk.getRecipients("v4") }
-        coVerify { recipientDb.loadAll(io.github.wulkanowy.data.db.entities.MailboxType.UNKNOWN, "v4") }
-        coVerify { recipientDb.insertAll(match { it.isEmpty() }) }
-        coVerify { recipientDb.deleteAll(match { it.isEmpty() }) }
+        coVerify {
+            recipientDb.loadAll(
+                io.github.wulkanowy.data.db.entities.MailboxType.UNKNOWN,
+                "v4"
+            )
+        }
+        coVerify { recipientDb.removeOldAndSaveNew(match { it.isEmpty() }, match { it.isEmpty() }) }
     }
 }

@@ -1,9 +1,8 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.createWulkanowySdkFactoryMock
 import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.dao.MobileDeviceDao
-import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.errorOrNull
 import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.toFirstResult
@@ -12,19 +11,16 @@ import io.github.wulkanowy.getStudentEntity
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.sdk.pojo.Device
 import io.github.wulkanowy.utils.AutoRefreshHelper
-import io.github.wulkanowy.utils.init
 import io.mockk.MockKAnnotations
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.impl.annotations.SpyK
 import io.mockk.just
-import io.mockk.mockk
-import io.mockk.slot
+import io.mockk.spyk
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -33,8 +29,8 @@ import java.time.ZonedDateTime.of
 
 class MobileDeviceRepositoryTest {
 
-    @SpyK
-    private var sdk = Sdk()
+    private var sdk = spyk<Sdk>()
+    private val wulkanowySdkFactory = createWulkanowySdkFactoryMock(sdk)
 
     @MockK
     private lateinit var mobileDeviceDb: MobileDeviceDao
@@ -57,53 +53,27 @@ class MobileDeviceRepositoryTest {
     fun initTest() {
         MockKAnnotations.init(this)
         every { refreshHelper.shouldBeRefreshed(any()) } returns false
-        val sdkFactory = mockk<SdkFactory>()
-        val studentSlot = slot<Student>()
-        coEvery { sdkFactory.init(capture(studentSlot)) } answers {
-            sdk.init(studentSlot.captured)
-        }
-        coEvery { sdkFactory.initUnauthorized() } returns sdk
 
-        mobileDeviceRepository = MobileDeviceRepository(mobileDeviceDb, sdkFactory, refreshHelper)
+        mobileDeviceRepository =
+            MobileDeviceRepository(mobileDeviceDb, wulkanowySdkFactory, refreshHelper)
     }
 
     @Test
-    fun `force refresh without difference`() {
+    fun `force refresh without difference`() = runTest {
         // prepare
         coEvery { sdk.getRegisteredDevices() } returns remoteList
         coEvery { mobileDeviceDb.loadAll(student.studentId) } returnsMany listOf(
             flowOf(remoteList.mapToEntities(student)),
             flowOf(remoteList.mapToEntities(student))
         )
-        coEvery { mobileDeviceDb.insertAll(any()) } returns listOf(1, 2, 3)
-        coEvery { mobileDeviceDb.deleteAll(any()) } just Runs
+        coEvery { mobileDeviceDb.removeOldAndSaveNew(any(), any()) } just Runs
 
         // execute
-        val res = runBlocking { mobileDeviceRepository.getDevices(student, semester, true).toFirstResult() }
-
-        // verify
-        Assert.assertEquals(null, res.errorOrNull)
-        Assert.assertEquals(2, res.dataOrNull?.size)
-        coVerify { sdk.getRegisteredDevices() }
-        coVerify { mobileDeviceDb.loadAll(1) }
-        coVerify { mobileDeviceDb.insertAll(match { it.isEmpty() }) }
-        coVerify { mobileDeviceDb.deleteAll(match { it.isEmpty() }) }
-    }
-
-    @Test
-    fun `force refresh with more items in remote`() {
-        // prepare
-        coEvery { sdk.getRegisteredDevices() } returns remoteList
-        coEvery { mobileDeviceDb.loadAll(1) } returnsMany listOf(
-            flowOf(remoteList.dropLast(1).mapToEntities(student)),
-            flowOf(remoteList.dropLast(1).mapToEntities(student)), // after fetch end before save result
-            flowOf(remoteList.mapToEntities(student))
-        )
-        coEvery { mobileDeviceDb.insertAll(any()) } returns listOf(1, 2, 3)
-        coEvery { mobileDeviceDb.deleteAll(any()) } just Runs
-
-        // execute
-        val res = runBlocking { mobileDeviceRepository.getDevices(student, semester, true).toFirstResult() }
+        val res = mobileDeviceRepository.getDevices(
+            student = student,
+            semester = semester,
+            forceRefresh = true,
+        ).toFirstResult()
 
         // verify
         Assert.assertEquals(null, res.errorOrNull)
@@ -111,15 +81,50 @@ class MobileDeviceRepositoryTest {
         coVerify { sdk.getRegisteredDevices() }
         coVerify { mobileDeviceDb.loadAll(1) }
         coVerify {
-            mobileDeviceDb.insertAll(match {
-                it.size == 1 && it[0] == remoteList.mapToEntities(student)[1]
-            })
+            mobileDeviceDb.removeOldAndSaveNew(
+                oldItems = match { it.isEmpty() },
+                newItems = match { it.isEmpty() },
+            )
         }
-        coVerify { mobileDeviceDb.deleteAll(match { it.isEmpty() }) }
     }
 
     @Test
-    fun `force refresh with more items in local`() {
+    fun `force refresh with more items in remote`() = runTest {
+        // prepare
+        coEvery { sdk.getRegisteredDevices() } returns remoteList
+        coEvery { mobileDeviceDb.loadAll(1) } returnsMany listOf(
+            flowOf(remoteList.dropLast(1).mapToEntities(student)),
+            flowOf(
+                remoteList.dropLast(1).mapToEntities(student)
+            ), // after fetch end before save result
+            flowOf(remoteList.mapToEntities(student))
+        )
+        coEvery { mobileDeviceDb.removeOldAndSaveNew(any(), any()) } just Runs
+
+        // execute
+        val res = mobileDeviceRepository.getDevices(
+            student = student,
+            semester = semester,
+            forceRefresh = true,
+        ).toFirstResult()
+
+        // verify
+        Assert.assertEquals(null, res.errorOrNull)
+        Assert.assertEquals(2, res.dataOrNull?.size)
+        coVerify { sdk.getRegisteredDevices() }
+        coVerify { mobileDeviceDb.loadAll(1) }
+        coVerify {
+            mobileDeviceDb.removeOldAndSaveNew(
+                oldItems = match { it.isEmpty() },
+                newItems = match {
+                    it.size == 1 && it[0] == remoteList.mapToEntities(student)[1]
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `force refresh with more items in local`() = runTest {
         // prepare
         coEvery { sdk.getRegisteredDevices() } returns remoteList.dropLast(1)
         coEvery { mobileDeviceDb.loadAll(1) } returnsMany listOf(
@@ -127,22 +132,27 @@ class MobileDeviceRepositoryTest {
             flowOf(remoteList.mapToEntities(student)), // after fetch end before save result
             flowOf(remoteList.dropLast(1).mapToEntities(student))
         )
-        coEvery { mobileDeviceDb.insertAll(any()) } returns listOf(1, 2, 3)
-        coEvery { mobileDeviceDb.deleteAll(any()) } just Runs
+        coEvery { mobileDeviceDb.removeOldAndSaveNew(any(), any()) } just Runs
 
         // execute
-        val res = runBlocking { mobileDeviceRepository.getDevices(student, semester, true).toFirstResult() }
+        val res = mobileDeviceRepository.getDevices(
+            student = student,
+            semester = semester,
+            forceRefresh = true,
+        ).toFirstResult()
 
         // verify
         Assert.assertEquals(null, res.errorOrNull)
         Assert.assertEquals(1, res.dataOrNull?.size)
         coVerify { sdk.getRegisteredDevices() }
         coVerify { mobileDeviceDb.loadAll(1) }
-        coVerify { mobileDeviceDb.insertAll(match { it.isEmpty() }) }
         coVerify {
-            mobileDeviceDb.deleteAll(match {
-                it.size == 1 && it[0] == remoteList.mapToEntities(student)[1]
-            })
+            mobileDeviceDb.removeOldAndSaveNew(
+                oldItems = match {
+                    it.size == 1 && it[0] == remoteList.mapToEntities(student)[1]
+                },
+                newItems = match { it.isEmpty() },
+            )
         }
     }
 

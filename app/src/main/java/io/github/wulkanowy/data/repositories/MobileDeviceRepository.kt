@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.MobileDeviceDao
 import io.github.wulkanowy.data.db.entities.MobileDevice
 import io.github.wulkanowy.data.db.entities.Semester
@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class MobileDeviceRepository @Inject constructor(
     private val mobileDb: MobileDeviceDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 
@@ -40,30 +40,28 @@ class MobileDeviceRepository @Inject constructor(
         },
         query = { mobileDb.loadAll(student.userLoginId) },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            wulkanowySdkFactory.create(student, semester)
                 .getRegisteredDevices()
                 .mapToEntities(student)
         },
         saveFetchResult = { old, new ->
-            mobileDb.deleteAll(old uniqueSubtract new)
-            mobileDb.insertAll(new uniqueSubtract old)
-
+            mobileDb.removeOldAndSaveNew(
+                oldItems = old uniqueSubtract new,
+                newItems = new uniqueSubtract old,
+            )
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, student))
         }
     )
 
     suspend fun unregisterDevice(student: Student, semester: Semester, device: MobileDevice) {
-        sdk.init(student)
-            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+        wulkanowySdkFactory.create(student, semester)
             .unregisterDevice(device.deviceId)
 
         mobileDb.deleteAll(listOf(device))
     }
 
     suspend fun getToken(student: Student, semester: Semester): MobileDeviceToken {
-        return sdk.init(student)
-            .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+        return wulkanowySdkFactory.create(student, semester)
             .getToken()
             .mapToMobileDeviceToken()
     }

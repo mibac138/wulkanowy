@@ -1,19 +1,48 @@
 package io.github.wulkanowy.ui.modules.dashboard
 
-import io.github.wulkanowy.data.*
+import io.github.wulkanowy.data.Resource
+import io.github.wulkanowy.data.dataOrNull
 import io.github.wulkanowy.data.db.entities.AdminMessage
 import io.github.wulkanowy.data.db.entities.LuckyNumber
 import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.enums.MessageFolder
 import io.github.wulkanowy.data.enums.MessageType
-import io.github.wulkanowy.data.repositories.*
+import io.github.wulkanowy.data.errorOrNull
+import io.github.wulkanowy.data.flatResourceFlow
+import io.github.wulkanowy.data.mapResourceData
+import io.github.wulkanowy.data.onResourceError
+import io.github.wulkanowy.data.repositories.AttendanceSummaryRepository
+import io.github.wulkanowy.data.repositories.ConferenceRepository
+import io.github.wulkanowy.data.repositories.ExamRepository
+import io.github.wulkanowy.data.repositories.GradeRepository
+import io.github.wulkanowy.data.repositories.HomeworkRepository
+import io.github.wulkanowy.data.repositories.LuckyNumberRepository
+import io.github.wulkanowy.data.repositories.MessageRepository
+import io.github.wulkanowy.data.repositories.PreferencesRepository
+import io.github.wulkanowy.data.repositories.SchoolAnnouncementRepository
+import io.github.wulkanowy.data.repositories.SemesterRepository
+import io.github.wulkanowy.data.repositories.StudentRepository
+import io.github.wulkanowy.data.repositories.TimetableRepository
 import io.github.wulkanowy.domain.adminmessage.GetAppropriateAdminMessageUseCase
+import io.github.wulkanowy.domain.timetable.IsStudentHasLessonsOnWeekendUseCase
 import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.utils.AdsHelper
 import io.github.wulkanowy.utils.calculatePercentage
 import io.github.wulkanowy.utils.nextOrSameSchoolDay
-import kotlinx.coroutines.flow.*
+import io.github.wulkanowy.utils.sunday
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
@@ -29,6 +58,7 @@ class DashboardPresenter @Inject constructor(
     private val messageRepository: MessageRepository,
     private val attendanceSummaryRepository: AttendanceSummaryRepository,
     private val timetableRepository: TimetableRepository,
+    private val isStudentHasLessonsOnWeekendUseCase: IsStudentHasLessonsOnWeekendUseCase,
     private val homeworkRepository: HomeworkRepository,
     private val examRepository: ExamRepository,
     private val conferenceRepository: ConferenceRepository,
@@ -48,6 +78,11 @@ class DashboardPresenter @Inject constructor(
 
     private val firstLoadedItemList = mutableListOf<DashboardItem.Type>()
 
+    private val selectedDashboardTiles
+        get() = preferencesRepository.selectedDashboardTiles
+            .filterNot { it == DashboardItem.Tile.ADS && !adsHelper.canShowAd }
+            .toSet()
+
     private lateinit var lastError: Throwable
 
     override fun onAttachView(view: DashboardView) {
@@ -59,10 +94,19 @@ class DashboardPresenter @Inject constructor(
             showContent(false)
         }
 
+        val selectedDashboardTilesFlow = preferencesRepository.selectedDashboardTilesFlow
+            .map { selectedDashboardTiles }
+        val isAdsEnabledFlow = preferencesRepository.isAdsEnabledFlow
+            .filter { (adsHelper.canShowAd && it) || !it }
+            .map { selectedDashboardTiles }
+        val isMobileAdsSdkInitializedFlow = adsHelper.isMobileAdsSdkInitialized
+            .filter { it }
+            .map { selectedDashboardTiles }
+
         merge(
-            preferencesRepository.selectedDashboardTilesFlow,
-            preferencesRepository.isAdsEnabledFlow
-                .map { preferencesRepository.selectedDashboardTiles }
+            selectedDashboardTilesFlow,
+            isAdsEnabledFlow,
+            isMobileAdsSdkInitializedFlow
         )
             .onEach { loadData(tilesToLoad = it) }
             .launch("dashboard_pref")
@@ -71,7 +115,7 @@ class DashboardPresenter @Inject constructor(
     fun onAdminMessageDismissed(adminMessage: AdminMessage) {
         preferencesRepository.dismissedAdminMessageIds += adminMessage.id
 
-        loadData(preferencesRepository.selectedDashboardTiles)
+        loadData(selectedDashboardTiles)
     }
 
     fun onDragAndDropEnd(list: List<DashboardItem>) {
@@ -187,7 +231,7 @@ class DashboardPresenter @Inject constructor(
 
     fun onSwipeRefresh() {
         Timber.i("Force refreshing the dashboard")
-        loadData(preferencesRepository.selectedDashboardTiles, forceRefresh = true)
+        loadData(selectedDashboardTiles, forceRefresh = true)
     }
 
     fun onRetry() {
@@ -195,7 +239,15 @@ class DashboardPresenter @Inject constructor(
             showErrorView(false)
             showProgress(true)
         }
-        loadData(preferencesRepository.selectedDashboardTiles, forceRefresh = true)
+        loadData(selectedDashboardTiles, forceRefresh = true)
+    }
+
+    fun onRetryAfterCaptcha() {
+        view?.run {
+            showErrorView(false)
+            showProgress(true)
+        }
+        loadData(selectedDashboardTiles, forceRefresh = true)
     }
 
     fun onViewReselected() {
@@ -216,7 +268,7 @@ class DashboardPresenter @Inject constructor(
     }
 
     fun onDashboardTileSettingsSelected(): Boolean {
-        view?.showDashboardTileSettings(preferencesRepository.selectedDashboardTiles.toList())
+        view?.showDashboardTileSettings(selectedDashboardTiles.toList())
         return true
     }
 
@@ -232,7 +284,7 @@ class DashboardPresenter @Inject constructor(
 
     private fun loadHorizontalGroup(student: Student, forceRefresh: Boolean) {
         flow {
-            val selectedTiles = preferencesRepository.selectedDashboardTiles
+            val selectedTiles = selectedDashboardTiles
             val flowSuccess = flowOf(Resource.Success(null))
 
             val luckyNumberFlow = luckyNumberRepository.getLuckyNumber(student, forceRefresh)
@@ -252,6 +304,7 @@ class DashboardPresenter @Inject constructor(
                     forceRefresh = forceRefresh
                 )
             }
+                .mapResourceData { it.map { messageWithAuthor -> messageWithAuthor.message } }
                 .onResourceError { errorHandler.dispatch(it) }
                 .takeIf { DashboardItem.Tile.MESSAGES in selectedTiles } ?: flowSuccess
 
@@ -275,7 +328,7 @@ class DashboardPresenter @Inject constructor(
                 ) { luckyNumberResource, messageResource, attendanceResource ->
                     val resList = listOf(luckyNumberResource, messageResource, attendanceResource)
 
-                    DashboardItem.HorizontalGroup(
+                    resList to DashboardItem.HorizontalGroup(
                         isLoading = resList.any { it is Resource.Loading },
                         error = resList.map { it.errorOrNull }.let { errors ->
                             if (errors.all { it != null }) {
@@ -300,9 +353,9 @@ class DashboardPresenter @Inject constructor(
                     )
                 })
         }
-            .filterNot { it.isLoading && forceRefresh }
+            .filterNot { (_, it) -> it.isLoading && forceRefresh }
             .distinctUntilChanged()
-            .onEach {
+            .onEach { (_, it) ->
                 updateData(it, forceRefresh)
 
                 if (it.isLoading) {
@@ -320,7 +373,7 @@ class DashboardPresenter @Inject constructor(
                 )
                 errorHandler.dispatch(it)
             }
-            .launch("horizontal_group ${if (forceRefresh) "-forceRefresh" else ""}")
+            .launchWithUniqueRefreshJob("horizontal_group", forceRefresh)
     }
 
     private fun loadGrades(student: Student, forceRefresh: Boolean) {
@@ -354,7 +407,7 @@ class DashboardPresenter @Inject constructor(
                                 subjectWithGrades = it.dataOrNull,
                                 gradeTheme = preferencesRepository.gradeColorTheme,
                                 isLoading = true
-                            ), forceRefresh
+                            ), false
                         )
 
                         if (!it.dataOrNull.isNullOrEmpty()) {
@@ -386,14 +439,17 @@ class DashboardPresenter @Inject constructor(
     private fun loadLessons(student: Student, forceRefresh: Boolean) {
         flatResourceFlow {
             val semester = semesterRepository.getCurrentSemester(student)
-            val date = LocalDate.now()
+            val date = when (isStudentHasLessonsOnWeekendUseCase(semester)) {
+                true -> LocalDate.now()
+                else -> LocalDate.now().nextOrSameSchoolDay
+            }
 
             timetableRepository.getTimetable(
                 student = student,
                 semester = semester,
                 start = date,
-                end = date.plusDays(1),
-                forceRefresh = forceRefresh
+                end = date.sunday,
+                forceRefresh = forceRefresh,
             )
         }
             .onEach {
@@ -403,7 +459,7 @@ class DashboardPresenter @Inject constructor(
                         if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Lessons(it.dataOrNull, isLoading = true),
-                            forceRefresh
+                            false
                         )
 
                         if (!it.dataOrNull?.lessons.isNullOrEmpty()) {
@@ -460,7 +516,7 @@ class DashboardPresenter @Inject constructor(
                         val data = it.dataOrNull.orEmpty()
                         updateData(
                             DashboardItem.Homework(data, isLoading = true),
-                            forceRefresh
+                            false
                         )
 
                         if (data.isNotEmpty()) {
@@ -494,7 +550,7 @@ class DashboardPresenter @Inject constructor(
                         if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Announcements(it.dataOrNull.orEmpty(), isLoading = true),
-                            forceRefresh
+                            false
                         )
 
                         if (!it.dataOrNull.isNullOrEmpty()) {
@@ -537,7 +593,7 @@ class DashboardPresenter @Inject constructor(
                         if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Exams(it.dataOrNull.orEmpty(), isLoading = true),
-                            forceRefresh
+                            false
                         )
 
                         if (!it.dataOrNull.isNullOrEmpty()) {
@@ -578,7 +634,7 @@ class DashboardPresenter @Inject constructor(
                         if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Conferences(it.dataOrNull.orEmpty(), isLoading = true),
-                            forceRefresh
+                            false
                         )
 
                         if (!it.dataOrNull.isNullOrEmpty()) {
@@ -613,7 +669,7 @@ class DashboardPresenter @Inject constructor(
                     is Resource.Loading -> {
                         Timber.i("Loading dashboard admin message data started")
                         if (forceRefresh) return@onEach
-                        updateData(DashboardItem.AdminMessages(), forceRefresh)
+                        updateData(DashboardItem.AdminMessages(), false)
                     }
 
                     is Resource.Success -> {
@@ -643,7 +699,7 @@ class DashboardPresenter @Inject constructor(
     private fun loadAds(forceRefresh: Boolean) {
         presenterScope.launch {
             if (!forceRefresh) {
-                updateData(DashboardItem.Ads(), forceRefresh)
+                updateData(DashboardItem.Ads(), false)
             }
 
             val dashboardAdItem =
@@ -764,6 +820,8 @@ class DashboardPresenter @Inject constructor(
         val filteredItems = itemsLoadedList.filterNot {
             it.type == DashboardItem.Type.ACCOUNT || it.type == DashboardItem.Type.ADMIN_MESSAGE
         }
+        val dataLoadedAdminMessageItem =
+            itemsLoadedList.find { it.type == DashboardItem.Type.ADMIN_MESSAGE && it.isDataLoaded } as DashboardItem.AdminMessages?
         val isAccountItemError =
             itemsLoadedList.find { it.type == DashboardItem.Type.ACCOUNT }?.error != null
         val isGeneralError =
@@ -785,7 +843,7 @@ class DashboardPresenter @Inject constructor(
                 showRefresh(false)
                 if ((forceRefresh && wasGeneralError) || !forceRefresh) {
                     showContent(false)
-                    showErrorView(true)
+                    showErrorView(true, dataLoadedAdminMessageItem)
                     setErrorDetails(lastError)
                 }
             }
@@ -812,6 +870,28 @@ class DashboardPresenter @Inject constructor(
         if (forceRefresh) {
             onEach {
                 if (it is Resource.Success) {
+                    cancelJobs(jobName)
+                } else if (it is Resource.Error) {
+                    cancelJobs(jobName)
+                }
+            }.launch(jobName)
+        } else {
+            launch(jobName)
+        }
+    }
+
+    @JvmName("launchWithUniqueRefreshJobHorizontalGroup")
+    private fun Flow<Pair<List<Resource<*>>, *>>.launchWithUniqueRefreshJob(
+        name: String,
+        forceRefresh: Boolean
+    ) {
+        val jobName = if (forceRefresh) "$name-forceRefresh" else name
+
+        if (forceRefresh) {
+            onEach { (resources, _) ->
+                if (resources.all { it is Resource.Success<*> }) {
+                    cancelJobs(jobName)
+                } else if (resources.any { it is Resource.Error<*> }) {
                     cancelJobs(jobName)
                 }
             }.launch(jobName)

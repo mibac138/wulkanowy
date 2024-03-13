@@ -1,6 +1,8 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import androidx.room.withTransaction
+import io.github.wulkanowy.data.WulkanowySdkFactory
+import io.github.wulkanowy.data.db.AppDatabase
 import io.github.wulkanowy.data.db.dao.AttendanceSummaryDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -16,8 +18,9 @@ import javax.inject.Singleton
 @Singleton
 class AttendanceSummaryRepository @Inject constructor(
     private val attendanceDb: AttendanceSummaryDao,
-    private val sdk: SdkFactory,
     private val refreshHelper: AutoRefreshHelper,
+    private val appDatabase: AppDatabase,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
 ) {
 
     private val saveFetchResultMutex = Mutex()
@@ -38,14 +41,15 @@ class AttendanceSummaryRepository @Inject constructor(
         },
         query = { attendanceDb.loadAll(semester.diaryId, semester.studentId, subjectId) },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
+            wulkanowySdkFactory.create(student, semester)
                 .getAttendanceSummary(subjectId)
                 .mapToEntities(semester, subjectId)
         },
         saveFetchResult = { old, new ->
-            attendanceDb.deleteAll(old uniqueSubtract new)
-            attendanceDb.insertAll(new uniqueSubtract old)
+            appDatabase.withTransaction {
+                attendanceDb.deleteAll(old uniqueSubtract new)
+                attendanceDb.insertAll(new uniqueSubtract old)
+            }
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester))
         }
     )

@@ -10,7 +10,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
 import io.github.wulkanowy.ui.base.BaseActivity
 import io.github.wulkanowy.ui.base.ErrorDialog
-import io.github.wulkanowy.ui.modules.auth.AuthDialog
 import io.github.wulkanowy.ui.modules.main.MainView
 import javax.inject.Inject
 
@@ -84,8 +83,16 @@ class SyncFragment : PreferenceFragmentCompat(),
             }
     }
 
-    override fun showExpiredDialog() {
-        (activity as? BaseActivity<*, *>)?.showExpiredDialog()
+    override fun showExpiredCredentialsDialog() {
+        (activity as? BaseActivity<*, *>)?.showExpiredCredentialsDialog()
+    }
+
+    override fun onCaptchaVerificationRequired(url: String?) {
+        (activity as? BaseActivity<*, *>)?.onCaptchaVerificationRequired(url)
+    }
+
+    override fun showDecryptionFailedDialog() {
+        (activity as? BaseActivity<*, *>)?.showDecryptionFailedDialog()
     }
 
     override fun showChangePasswordSnackbar(redirectUrl: String) {
@@ -101,7 +108,7 @@ class SyncFragment : PreferenceFragmentCompat(),
     }
 
     override fun showAuthDialog() {
-        AuthDialog.newInstance().show(childFragmentManager, "auth_dialog")
+        (activity as? BaseActivity<*, *>)?.showAuthDialog()
     }
 
     override fun onResume() {

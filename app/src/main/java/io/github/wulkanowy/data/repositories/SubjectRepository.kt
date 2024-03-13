@@ -1,6 +1,6 @@
 package io.github.wulkanowy.data.repositories
 
-import io.github.wulkanowy.data.SdkFactory
+import io.github.wulkanowy.data.WulkanowySdkFactory
 import io.github.wulkanowy.data.db.dao.SubjectDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
@@ -16,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class SubjectRepository @Inject constructor(
     private val subjectDao: SubjectDao,
-    private val sdk: SdkFactory,
+    private val wulkanowySdkFactory: WulkanowySdkFactory,
     private val refreshHelper: AutoRefreshHelper,
 ) {
 
@@ -37,14 +37,15 @@ class SubjectRepository @Inject constructor(
         },
         query = { subjectDao.loadAll(semester.diaryId, semester.studentId) },
         fetch = {
-            sdk.init(student)
-                .switchDiary(semester.diaryId, semester.kindergartenDiaryId, semester.schoolYear)
-                .getSubjects().mapToEntities(semester)
+            wulkanowySdkFactory.create(student, semester)
+                .getSubjects()
+                .mapToEntities(semester)
         },
         saveFetchResult = { old, new ->
-            subjectDao.deleteAll(old uniqueSubtract new)
-            subjectDao.insertAll(new uniqueSubtract old)
-
+            subjectDao.removeOldAndSaveNew(
+                oldItems = old uniqueSubtract new,
+                newItems = new uniqueSubtract old
+            )
             refreshHelper.updateLastRefreshTimestamp(getRefreshKey(cacheKey, semester))
         }
     )

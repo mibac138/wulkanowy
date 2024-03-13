@@ -2,6 +2,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="pref_key_start_menu">default_menu_index</string>
     <string name="pref_key_attendance_present">attendance_present</string>
+    <string name="pref_key_attendance_target">attendance_target</string>
+    <string name="pref_key_attendance_calculator_sorting_mode">attendance_calculator_sorting_mode</string>
+    <string name="pref_key_attendance_calculator_show_empty_subjects">attendance_calculator_show_empty_subjects</string>
     <string name="pref_key_app_theme">app_theme</string>
     <string name="pref_key_dashboard_tiles">dashboard_tiles</string>
     <string name="pref_key_grade_color_scheme">grade_color_scheme</string>
@@ -37,8 +40,7 @@
     <string name="pref_key_ads_single_support">single_ad_support</string>
     <string name="pref_key_ads_enabled">ads_enabled</string>
     <string name="pref_key_ads_privacy_policy">ads_privacy_policy</string>
-    <string name="pref_key_ads_consent_data_processing">ads_consent_data_processing</string>
-    <string name="pref_key_ads_over_eighteen">ads_over_eighteen</string>
+    <string name="pref_key_ads_ump_agreements">ads_ump_agreements</string>
     <string name="pref_key_incognito_moge">incognito_mode</string>
     <string name="pref_key_menu_order">appearance_menu_order</string>
 </resources>
