@@ -144,7 +144,7 @@ class DashboardPresenter @Inject constructor(
             forceRefresh = forceRefresh
         ).map { it.toDashboardItemType() }
 
-        removeUnselectedTiles(tilesToLoad.toList())
+        removeUnselectedTiles(tilesToLoad)
         loadTiles(tileList = itemsToLoad, forceRefresh = forceRefresh)
     }
 
@@ -157,7 +157,7 @@ class DashboardPresenter @Inject constructor(
             || newItemToLoad == DashboardItem.Tile.ADMIN_MESSAGE
     }
 
-    private fun removeUnselectedTiles(tilesToLoad: List<DashboardItem.Tile>) {
+    private fun removeUnselectedTiles(tilesToLoad: Collection<DashboardItem.Tile>) {
         dashboardItemLoadedList.removeAll { loadedTile -> dashboardItemsToLoad.none { it == loadedTile.type } }
 
         val horizontalGroup =
