@@ -282,7 +282,7 @@ class DashboardPresenter @Inject constructor(
                 .onResourceError { errorHandler.dispatch(it) }
                 .takeIf { DashboardItem.Tile.LUCKY_NUMBER in selectedTiles } ?: flowSuccess
 
-            val messageFLow = flatResourceFlow {
+            val messageFlow = flatResourceFlow {
                 val mailbox = messageRepository.getMailboxByStudent(student)
 
                 messageRepository.getMessages(
@@ -311,7 +311,7 @@ class DashboardPresenter @Inject constructor(
             emitAll(
                 combine(
                     flow = luckyNumberFlow,
-                    flow2 = messageFLow,
+                    flow2 = messageFlow,
                     flow3 = attendanceFlow,
                 ) { luckyNumberResource, messageResource, attendanceResource ->
                     val resList = listOf(luckyNumberResource, messageResource, attendanceResource)
