@@ -703,25 +703,25 @@ class DashboardPresenter @Inject constructor(
 
         if (dashboardItem is DashboardItem.AdminMessages) {
             if (!dashboardItem.isDataLoaded) {
-                dashboardItemsToLoad = dashboardItemsToLoad - DashboardItem.Type.ADMIN_MESSAGE
-                dashboardTileLoadedList = dashboardTileLoadedList - DashboardItem.Tile.ADMIN_MESSAGE
+                dashboardItemsToLoad -= DashboardItem.Type.ADMIN_MESSAGE
+                dashboardTileLoadedList -= DashboardItem.Tile.ADMIN_MESSAGE
 
                 dashboardItemLoadedList.removeAll { it.type == DashboardItem.Type.ADMIN_MESSAGE }
             } else {
-                dashboardItemsToLoad = dashboardItemsToLoad + DashboardItem.Type.ADMIN_MESSAGE
-                dashboardTileLoadedList = dashboardTileLoadedList + DashboardItem.Tile.ADMIN_MESSAGE
+                dashboardItemsToLoad += DashboardItem.Type.ADMIN_MESSAGE
+                dashboardTileLoadedList += DashboardItem.Tile.ADMIN_MESSAGE
             }
         }
 
         if (dashboardItem is DashboardItem.Ads) {
             if (!dashboardItem.isDataLoaded) {
-                dashboardItemsToLoad = dashboardItemsToLoad - DashboardItem.Type.ADS
-                dashboardTileLoadedList = dashboardTileLoadedList - DashboardItem.Tile.ADS
+                dashboardItemsToLoad -= DashboardItem.Type.ADS
+                dashboardTileLoadedList -= DashboardItem.Tile.ADS
 
                 dashboardItemLoadedList.removeAll { it.type == DashboardItem.Type.ADS }
             } else {
-                dashboardItemsToLoad = dashboardItemsToLoad + DashboardItem.Type.ADS
-                dashboardTileLoadedList = dashboardTileLoadedList + DashboardItem.Tile.ADS
+                dashboardItemsToLoad += DashboardItem.Type.ADS
+                dashboardTileLoadedList += DashboardItem.Tile.ADS
             }
         }
 
