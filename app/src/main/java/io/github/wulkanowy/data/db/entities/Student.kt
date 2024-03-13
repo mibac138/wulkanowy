@@ -42,6 +42,9 @@ data class Student(
 
     val email: String,
 
+    @Deprecated("Use PasswordRepository.getPassword instead")
+    var password: String,
+
     val symbol: String,
 
     @ColumnInfo(name = "student_id")
@@ -85,7 +88,4 @@ data class Student(
 
     @ColumnInfo(name = "avatar_color")
     var avatarColor = 0L
-
-    @Deprecated(message = "use AuthDataRepository instead")
-    var password: String = ""
 }

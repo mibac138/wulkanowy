@@ -83,8 +83,8 @@ fun RegisterStudent.mapToStudentWithSemesters(
         privateKey = symbol.privatePem.orEmpty(),
         isCurrent = false,
         registrationDate = Instant.now(),
+        password = user.password.orEmpty(),
     ).apply {
-        password = user.password.orEmpty()
         avatarColor = colors.random()
     },
 )

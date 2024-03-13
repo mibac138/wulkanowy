@@ -161,7 +161,6 @@ import javax.inject.Singleton
         AdminMessage::class,
         MutedMessageSender::class,
         GradeDescriptive::class,
-        StudentAuthData::class,
     ],
     autoMigrations = [
         AutoMigration(from = 44, to = 45),
@@ -312,6 +311,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val mutedMessageSendersDao: MutedMessageSendersDao
 
     abstract val gradeDescriptiveDao: GradeDescriptiveDao
-
-    abstract val studentAuthDataDao: StudentAuthDataDao
 }

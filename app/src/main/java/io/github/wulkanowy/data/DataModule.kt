@@ -117,10 +117,6 @@ internal class DataModule {
 
     @Singleton
     @Provides
-    fun provideStudentAuthDataDao(database: AppDatabase) = database.studentAuthDataDao
-
-    @Singleton
-    @Provides
     fun provideStudentDao(database: AppDatabase) = database.studentDao
 
     @Singleton

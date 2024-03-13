@@ -38,9 +38,6 @@ abstract class StudentDao {
     @Query("SELECT * FROM Students WHERE id = :id")
     abstract suspend fun loadById(id: Long): Student?
 
-    @Query("SELECT * FROM Students WHERE email = :email")
-    abstract suspend fun loadByEmail(email: String): List<Student>
-
     @Query("SELECT * FROM Students")
     abstract suspend fun loadAll(): List<Student>
 
