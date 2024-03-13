@@ -743,13 +743,15 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun updateNormalData() {
-        val isItemsLoaded =
+        // Loading as in at least started to load
+        val isLoading =
             dashboardItemsToLoad.all { type -> dashboardItemLoadedList.any { it.type == type } }
-        val isItemsDataLoaded = isItemsLoaded && dashboardItemLoadedList.all {
+        // Finished loading or at least has some meaningful intermediate data
+        val isLoaded = isLoading && dashboardItemLoadedList.all {
             it.isDataLoaded || it.error != null
         }
 
-        if (isItemsDataLoaded) {
+        if (isLoaded) {
             view?.run {
                 showProgress(false)
                 showErrorView(false)
@@ -759,7 +761,7 @@ class DashboardPresenter @Inject constructor(
         }
 
         showErrorIfExists(
-            isItemsLoaded = isItemsLoaded,
+            isItemsLoaded = isLoading,
             itemsLoadedList = dashboardItemLoadedList,
             forceRefresh = false
         )
@@ -774,13 +776,15 @@ class DashboardPresenter @Inject constructor(
             if (!isNotLoadedAdminMessage) add(dashboardItem)
         }
 
-        val isRefreshItemLoaded =
+        // Loading as in at least started to load
+        val isLoading =
             dashboardItemsToLoad.all { type -> dashboardItemRefreshLoadedList.any { it.type == type } }
-        val isRefreshItemsDataLoaded = isRefreshItemLoaded && dashboardItemRefreshLoadedList.all {
+        // Finished loading or at least has some meaningful intermediate data
+        val isLoaded = isLoading && dashboardItemRefreshLoadedList.all {
             it.isDataLoaded || it.error != null
         }
 
-        if (isRefreshItemsDataLoaded) {
+        if (isLoaded) {
             view?.run {
                 showRefresh(false)
                 showErrorView(false)
@@ -790,12 +794,12 @@ class DashboardPresenter @Inject constructor(
         }
 
         showErrorIfExists(
-            isItemsLoaded = isRefreshItemLoaded,
+            isItemsLoaded = isLoading,
             itemsLoadedList = dashboardItemRefreshLoadedList,
             forceRefresh = true
         )
 
-        if (isRefreshItemsDataLoaded) dashboardItemRefreshLoadedList.clear()
+        if (isLoaded) dashboardItemRefreshLoadedList.clear()
     }
 
     private fun showErrorIfExists(
