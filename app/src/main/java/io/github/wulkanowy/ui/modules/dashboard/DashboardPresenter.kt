@@ -696,9 +696,9 @@ class DashboardPresenter @Inject constructor(
                 removeAll { it.type == dashboardItem.type }
                 add(dashboardItem)
             }
-        }
 
-        sortDashboardItems()
+            sortDashboardItems()
+        }
 
         if (dashboardItem is DashboardItem.AdminMessages) {
             if (!dashboardItem.isDataLoaded) {
