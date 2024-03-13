@@ -144,22 +144,19 @@ class DashboardPresenter @Inject constructor(
         dashboardLoadedTiles: Set<DashboardItem.Tile>,
         forceRefresh: Boolean
     ) = dashboardTilesToLoad.filter { newItemToLoad ->
-        dashboardLoadedTiles.none { it == newItemToLoad } || forceRefresh
-            || newItemToLoad == DashboardItem.Tile.ADMIN_MESSAGE
+        dashboardLoadedTiles.none { it == newItemToLoad } || forceRefresh || newItemToLoad == DashboardItem.Tile.ADMIN_MESSAGE
     }
 
     private fun removeUnselectedTiles(tilesToLoad: Collection<DashboardItem.Tile>) {
         dashboardItemLoadedList.removeAll { loadedTile -> dashboardItemsToLoad.none { it == loadedTile.type } }
 
         val horizontalGroup =
-            dashboardItemLoadedList.find { it is DashboardItem.HorizontalGroup } as DashboardItem.HorizontalGroup?
+            dashboardItemLoadedList.firstNotNullOfOrNull { it as? DashboardItem.HorizontalGroup }
 
         if (horizontalGroup != null) {
-            val isLuckyNumberToLoad = DashboardItem.Tile.LUCKY_NUMBER in tilesToLoad
-            val isMessagesToLoad = DashboardItem.Tile.MESSAGES in tilesToLoad
             val isAttendanceToLoad = DashboardItem.Tile.ATTENDANCE in tilesToLoad
-
-            val horizontalGroupIndex = dashboardItemLoadedList.indexOf(horizontalGroup)
+            val isMessagesToLoad = DashboardItem.Tile.MESSAGES in tilesToLoad
+            val isLuckyNumberToLoad = DashboardItem.Tile.LUCKY_NUMBER in tilesToLoad
 
             val newHorizontalGroup = horizontalGroup.copy(
                 attendancePercentage = horizontalGroup.attendancePercentage.takeIf { isAttendanceToLoad },
@@ -167,10 +164,8 @@ class DashboardPresenter @Inject constructor(
                 luckyNumber = horizontalGroup.luckyNumber.takeIf { isLuckyNumberToLoad }
             )
 
-            with(dashboardItemLoadedList) {
-                removeAt(horizontalGroupIndex)
-                add(horizontalGroupIndex, newHorizontalGroup)
-            }
+            val horizontalGroupIndex = dashboardItemLoadedList.indexOf(horizontalGroup)
+            dashboardItemLoadedList[horizontalGroupIndex] = newHorizontalGroup
         }
 
         view?.updateData(dashboardItemLoadedList)
