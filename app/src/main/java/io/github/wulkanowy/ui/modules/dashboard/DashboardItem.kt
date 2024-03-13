@@ -125,8 +125,8 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isDataLoaded get() = adBanner != null
     }
 
-    enum class Type {
-        ADMIN_MESSAGE,
+    enum class Type(val refreshBehavior: RefreshBehavior = RefreshBehavior.OnScreen) {
+        ADMIN_MESSAGE(refreshBehavior = RefreshBehavior.Always),
         ACCOUNT,
         HORIZONTAL_GROUP,
         LESSONS,
@@ -152,4 +152,19 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         EXAMS(Type.EXAMS),
         CONFERENCES(Type.CONFERENCES),
     }
+
+    enum class RefreshBehavior {
+        /**
+         * Types with this refresh behavior should always be refreshed, no matter whether they are
+         * selected (in the dashboard tile list menu) or not.
+         */
+        Always,
+
+        /**
+         * Types with this refresh behavior are only refreshed when they are actually selected (in
+         * the dashboard tile list menu).
+         */
+        OnScreen,
+    }
+
 }

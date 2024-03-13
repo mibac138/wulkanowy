@@ -146,7 +146,7 @@ class DashboardPresenter @Inject constructor(
         dashboardLoadedTiles: Set<DashboardItem.Tile>,
         forceRefresh: Boolean
     ) = dashboardTilesToLoad.filter { newItemToLoad ->
-        dashboardLoadedTiles.none { it == newItemToLoad } || forceRefresh || newItemToLoad == DashboardItem.Tile.ADMIN_MESSAGE
+        forceRefresh || newItemToLoad.type.refreshBehavior == DashboardItem.RefreshBehavior.Always || dashboardLoadedTiles.none { it == newItemToLoad }
     }
 
     private fun removeUnselectedTiles(tilesToLoad: Collection<DashboardItem.Tile>) {
