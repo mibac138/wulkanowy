@@ -11,12 +11,21 @@ import io.github.wulkanowy.data.pojos.TimetableFull
 import io.github.wulkanowy.utils.AdBanner
 import io.github.wulkanowy.data.db.entities.Homework as EntitiesHomework
 
-sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) {
+sealed class DashboardItem(
+    val type: Type,
+    val order: Int = type.ordinal + 100,
+) {
 
     abstract val error: Throwable?
 
+    /**
+     * If true, the item is currently being loaded.
+     */
     abstract val isLoading: Boolean
 
+    /**
+     * If true, any data has been loaded
+     */
     abstract val isDataLoaded: Boolean
 
     data class AdminMessages(
@@ -68,7 +77,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.GRADES) {
 
-        override val isDataLoaded get() = subjectWithGrades != null
+        override val isDataLoaded get() = !subjectWithGrades.isNullOrEmpty()
     }
 
     data class Lessons(
@@ -77,7 +86,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.LESSONS) {
 
-        override val isDataLoaded get() = lessons != null
+        override val isDataLoaded get() = !lessons?.lessons.isNullOrEmpty()
     }
 
     data class Homework(
@@ -86,7 +95,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.HOMEWORK) {
 
-        override val isDataLoaded get() = homework != null
+        override val isDataLoaded get() = !homework.isNullOrEmpty()
     }
 
     data class Announcements(
@@ -95,7 +104,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.ANNOUNCEMENTS) {
 
-        override val isDataLoaded get() = announcement != null
+        override val isDataLoaded get() = !announcement.isNullOrEmpty()
     }
 
     data class Exams(
@@ -104,7 +113,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.EXAMS) {
 
-        override val isDataLoaded get() = exams != null
+        override val isDataLoaded get() = !exams.isNullOrEmpty()
     }
 
     data class Conferences(
@@ -113,7 +122,7 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isLoading: Boolean = false
     ) : DashboardItem(Type.CONFERENCES) {
 
-        override val isDataLoaded get() = conferences != null
+        override val isDataLoaded get() = !conferences.isNullOrEmpty()
     }
 
     data class Ads(
@@ -125,12 +134,23 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         override val isDataLoaded get() = adBanner != null
     }
 
-    enum class Type(val refreshBehavior: RefreshBehavior = RefreshBehavior.OnScreen) {
-        ADMIN_MESSAGE(refreshBehavior = RefreshBehavior.Always),
+    enum class Type(
+        val refreshBehavior: RefreshBehavior = RefreshBehavior.OnScreen,
+        val importance: Importance = Importance.Blocking,
+        val loadingDisplay: LoadingDisplay = LoadingDisplay.Shown
+    ) {
+        ADMIN_MESSAGE(
+            refreshBehavior = RefreshBehavior.Always,
+            importance = Importance.NonBlocking,
+            loadingDisplay = LoadingDisplay.Hidden
+        ),
         ACCOUNT,
         HORIZONTAL_GROUP,
         LESSONS,
-        ADS,
+        ADS(
+            importance = Importance.NonBlocking,
+            loadingDisplay = LoadingDisplay.Hidden
+        ),
         GRADES,
         HOMEWORK,
         ANNOUNCEMENTS,
@@ -167,4 +187,41 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         OnScreen,
     }
 
+    enum class Importance {
+        /**
+         * Items that do not block the whole dashboard from transitioning from a full-screen spinner
+         * to the actual view.
+         */
+        NonBlocking,
+
+        /**
+         * Upon first loading the dashboard will continue to show a full-screen spinner until all
+         * blocking items are loaded
+         */
+        Blocking,
+    }
+
+    enum class LoadingDisplay {
+        /**
+         * Tile does not support displaying it until there is data present.
+         */
+        Hidden,
+
+        /**
+         * Tile supports displaying it even when there isn't any data present, i.e. the item has
+         * it's own loading state that can be independently displayed.
+         */
+        Shown
+    }
 }
+
+val DashboardItem.canBeDisplayed: Boolean
+    get() = when (type.loadingDisplay) {
+        DashboardItem.LoadingDisplay.Hidden -> isDataLoaded || error != null
+        // Items that are Blocking & Shown do block the UI until the first updateData with their
+        // respective data is invoked.
+        DashboardItem.LoadingDisplay.Shown -> true
+    }
+
+val DashboardItem.isConsideredLoaded: Boolean
+    get() = type.importance == DashboardItem.Importance.NonBlocking || canBeDisplayed

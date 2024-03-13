@@ -28,6 +28,7 @@ import io.github.wulkanowy.domain.adminmessage.GetAppropriateAdminMessageUseCase
 import io.github.wulkanowy.domain.timetable.IsStudentHasLessonsOnWeekendUseCase
 import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
+import io.github.wulkanowy.ui.modules.dashboard.DashboardItem.Importance.NonBlocking
 import io.github.wulkanowy.utils.AdsHelper
 import io.github.wulkanowy.utils.calculatePercentage
 import io.github.wulkanowy.utils.nextOrSameSchoolDay
@@ -170,7 +171,7 @@ class DashboardPresenter @Inject constructor(
             dashboardItemLoadedList[horizontalGroupIndex] = newHorizontalGroup
         }
 
-        view?.updateData(dashboardItemLoadedList)
+        view?.updateData(dashboardItemLoadedList.filter(DashboardItem::canBeDisplayed))
     }
 
     private fun loadTiles(
@@ -701,30 +702,6 @@ class DashboardPresenter @Inject constructor(
             sortDashboardItems()
         }
 
-        if (dashboardItem is DashboardItem.AdminMessages) {
-            if (!dashboardItem.isDataLoaded) {
-                dashboardItemsToLoad -= DashboardItem.Type.ADMIN_MESSAGE
-                dashboardTileLoadedList -= DashboardItem.Tile.ADMIN_MESSAGE
-
-                dashboardItemLoadedList.removeAll { it.type == DashboardItem.Type.ADMIN_MESSAGE }
-            } else {
-                dashboardItemsToLoad += DashboardItem.Type.ADMIN_MESSAGE
-                dashboardTileLoadedList += DashboardItem.Tile.ADMIN_MESSAGE
-            }
-        }
-
-        if (dashboardItem is DashboardItem.Ads) {
-            if (!dashboardItem.isDataLoaded) {
-                dashboardItemsToLoad -= DashboardItem.Type.ADS
-                dashboardTileLoadedList -= DashboardItem.Tile.ADS
-
-                dashboardItemLoadedList.removeAll { it.type == DashboardItem.Type.ADS }
-            } else {
-                dashboardItemsToLoad += DashboardItem.Type.ADS
-                dashboardTileLoadedList += DashboardItem.Tile.ADS
-            }
-        }
-
         if (forceRefresh) {
             updateForceRefreshData(dashboardItem)
         } else {
@@ -735,18 +712,16 @@ class DashboardPresenter @Inject constructor(
     private fun updateNormalData() {
         // Loading as in at least started to load
         val isLoading =
-            dashboardItemsToLoad.all { type -> dashboardItemLoadedList.any { it.type == type } }
+            dashboardItemsToLoad.all { type -> type.importance == NonBlocking || dashboardItemLoadedList.any { it.type == type } }
         // Finished loading or at least has some meaningful intermediate data
-        val isLoaded = isLoading && dashboardItemLoadedList.all {
-            it.isDataLoaded || it.error != null
-        }
+        val isLoaded = isLoading && dashboardItemLoadedList.all(DashboardItem::isConsideredLoaded)
 
         if (isLoaded) {
             view?.run {
                 showProgress(false)
                 showErrorView(false)
                 showContent(true)
-                updateData(dashboardItemLoadedList.toList())
+                updateData(dashboardItemLoadedList.filter(DashboardItem::canBeDisplayed))
             }
         }
 
@@ -758,28 +733,23 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun updateForceRefreshData(dashboardItem: DashboardItem) {
-        val isNotLoadedAdminMessage =
-            dashboardItem is DashboardItem.AdminMessages && !dashboardItem.isDataLoaded
-
         with(dashboardItemRefreshLoadedList) {
             removeAll { it.type == dashboardItem.type }
-            if (!isNotLoadedAdminMessage) add(dashboardItem)
+            add(dashboardItem)
         }
 
         // Loading as in at least started to load
         val isLoading =
-            dashboardItemsToLoad.all { type -> dashboardItemRefreshLoadedList.any { it.type == type } }
+            dashboardItemsToLoad.all { type -> type.importance == NonBlocking || dashboardItemRefreshLoadedList.any { it.type == type } }
         // Finished loading or at least has some meaningful intermediate data
-        val isLoaded = isLoading && dashboardItemRefreshLoadedList.all {
-            it.isDataLoaded || it.error != null
-        }
+        val isLoaded = isLoading && dashboardItemRefreshLoadedList.all(DashboardItem::isConsideredLoaded)
 
         if (isLoaded) {
             view?.run {
                 showRefresh(false)
                 showErrorView(false)
                 showContent(true)
-                updateData(dashboardItemLoadedList.toList())
+                updateData(dashboardItemLoadedList.filter(DashboardItem::canBeDisplayed))
             }
         }
 
