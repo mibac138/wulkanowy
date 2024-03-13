@@ -1,12 +1,17 @@
 package io.github.wulkanowy.ui.modules.dashboard
 
-import io.github.wulkanowy.data.db.entities.*
+import io.github.wulkanowy.data.db.entities.AdminMessage
+import io.github.wulkanowy.data.db.entities.Conference
+import io.github.wulkanowy.data.db.entities.Exam
+import io.github.wulkanowy.data.db.entities.Grade
+import io.github.wulkanowy.data.db.entities.SchoolAnnouncement
+import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.enums.GradeColorTheme
 import io.github.wulkanowy.data.pojos.TimetableFull
 import io.github.wulkanowy.utils.AdBanner
 import io.github.wulkanowy.data.db.entities.Homework as EntitiesHomework
 
-sealed class DashboardItem(val type: Type) {
+sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) {
 
     abstract val error: Throwable?
 
@@ -18,7 +23,7 @@ sealed class DashboardItem(val type: Type) {
         val adminMessage: AdminMessage? = null,
         override val error: Throwable? = null,
         override val isLoading: Boolean = false
-    ) : DashboardItem(Type.ADMIN_MESSAGE) {
+    ) : DashboardItem(Type.ADMIN_MESSAGE, order = -1) {
 
         override val isDataLoaded get() = adminMessage != null
     }

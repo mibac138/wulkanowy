@@ -854,13 +854,7 @@ class DashboardPresenter @Inject constructor(
         val dashboardItemsPosition = preferencesRepository.dashboardItemsPosition
 
         dashboardItemLoadedList.sortBy { tile ->
-            val defaultPosition = if (tile is DashboardItem.AdminMessages) {
-                -1
-            } else {
-                tile.type.ordinal + 100
-            }
-
-            dashboardItemsPosition?.get(tile.type) ?: defaultPosition
+            dashboardItemsPosition?.get(tile.type) ?: tile.order
         }
     }
 
