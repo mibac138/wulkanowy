@@ -138,33 +138,18 @@ sealed class DashboardItem(val type: Type, val order: Int = type.ordinal + 100) 
         CONFERENCES,
     }
 
-    enum class Tile {
-        ADMIN_MESSAGE,
-        ACCOUNT,
-        LUCKY_NUMBER,
-        MESSAGES,
-        ATTENDANCE,
-        LESSONS,
-        ADS,
-        GRADES,
-        HOMEWORK,
-        ANNOUNCEMENTS,
-        EXAMS,
-        CONFERENCES,
+    enum class Tile(val type: Type) {
+        ADMIN_MESSAGE(Type.ADMIN_MESSAGE),
+        ACCOUNT(Type.ACCOUNT),
+        LUCKY_NUMBER(Type.HORIZONTAL_GROUP),
+        MESSAGES(Type.HORIZONTAL_GROUP),
+        ATTENDANCE(Type.HORIZONTAL_GROUP),
+        LESSONS(Type.LESSONS),
+        ADS(Type.ADS),
+        GRADES(Type.GRADES),
+        HOMEWORK(Type.HOMEWORK),
+        ANNOUNCEMENTS(Type.ANNOUNCEMENTS),
+        EXAMS(Type.EXAMS),
+        CONFERENCES(Type.CONFERENCES),
     }
-}
-
-fun DashboardItem.Tile.toDashboardItemType() = when (this) {
-    DashboardItem.Tile.ADMIN_MESSAGE -> DashboardItem.Type.ADMIN_MESSAGE
-    DashboardItem.Tile.ACCOUNT -> DashboardItem.Type.ACCOUNT
-    DashboardItem.Tile.LUCKY_NUMBER -> DashboardItem.Type.HORIZONTAL_GROUP
-    DashboardItem.Tile.MESSAGES -> DashboardItem.Type.HORIZONTAL_GROUP
-    DashboardItem.Tile.ATTENDANCE -> DashboardItem.Type.HORIZONTAL_GROUP
-    DashboardItem.Tile.LESSONS -> DashboardItem.Type.LESSONS
-    DashboardItem.Tile.GRADES -> DashboardItem.Type.GRADES
-    DashboardItem.Tile.HOMEWORK -> DashboardItem.Type.HOMEWORK
-    DashboardItem.Tile.ANNOUNCEMENTS -> DashboardItem.Type.ANNOUNCEMENTS
-    DashboardItem.Tile.EXAMS -> DashboardItem.Type.EXAMS
-    DashboardItem.Tile.CONFERENCES -> DashboardItem.Type.CONFERENCES
-    DashboardItem.Tile.ADS -> DashboardItem.Type.ADS
 }

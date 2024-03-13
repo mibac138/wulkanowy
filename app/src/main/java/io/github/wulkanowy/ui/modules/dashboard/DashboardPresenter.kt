@@ -128,14 +128,14 @@ class DashboardPresenter @Inject constructor(
         forceRefresh: Boolean = false,
     ) {
         val oldDashboardTileLoadedList = dashboardTileLoadedList
-        dashboardItemsToLoad = tilesToLoad.map { it.toDashboardItemType() }.toSet()
+        dashboardItemsToLoad = tilesToLoad.map(DashboardItem.Tile::type).toSet()
         dashboardTileLoadedList = tilesToLoad
 
         val itemsToLoad = generateDashboardTileListToLoad(
             dashboardTilesToLoad = tilesToLoad,
             dashboardLoadedTiles = oldDashboardTileLoadedList,
             forceRefresh = forceRefresh
-        ).map { it.toDashboardItemType() }
+        ).map(DashboardItem.Tile::type)
 
         removeUnselectedTiles(tilesToLoad)
         loadTiles(tileList = itemsToLoad, forceRefresh = forceRefresh)
