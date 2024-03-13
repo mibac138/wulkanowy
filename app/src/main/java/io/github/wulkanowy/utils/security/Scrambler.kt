@@ -81,8 +81,8 @@ class Scrambler @Inject constructor(
         Timber.i("KeyPair has been cleared")
     }
 
-    private companion object {
-        private const val KEYSTORE_NAME = "AndroidKeyStore"
-        private const val KEY_ALIAS = "wulkanowy_password"
+    companion object {
+        const val KEYSTORE_NAME = "AndroidKeyStore"
+        const val KEY_ALIAS = "wulkanowy_password"
     }
 }
