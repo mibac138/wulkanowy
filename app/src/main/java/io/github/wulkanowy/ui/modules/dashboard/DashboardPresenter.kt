@@ -691,9 +691,11 @@ class DashboardPresenter @Inject constructor(
         val isFirstRunDataLoadedError =
             dashboardItem.type in firstLoadedItemList && dashboardItem.error != null
 
-        with(dashboardItemLoadedList) {
-            removeAll { it.type == dashboardItem.type && !isForceRefreshError && !isFirstRunDataLoadedError }
-            if (!isForceRefreshError && !isFirstRunDataLoadedError) add(dashboardItem)
+        if (!isForceRefreshError && !isFirstRunDataLoadedError) {
+            with(dashboardItemLoadedList) {
+                removeAll { it.type == dashboardItem.type }
+                add(dashboardItem)
+            }
         }
 
         sortDashboardItems()
