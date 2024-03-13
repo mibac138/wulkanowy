@@ -860,7 +860,7 @@ class DashboardPresenter @Inject constructor(
                 tile.type.ordinal + 100
             }
 
-            dashboardItemsPosition?.getOrDefault(tile.type, defaultPosition) ?: tile.type.ordinal
+            dashboardItemsPosition?.get(tile.type) ?: defaultPosition
         }
     }
 
