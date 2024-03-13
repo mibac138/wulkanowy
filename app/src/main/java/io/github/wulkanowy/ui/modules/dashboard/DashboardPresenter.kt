@@ -40,7 +40,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -95,21 +94,13 @@ class DashboardPresenter @Inject constructor(
         }
 
         val selectedDashboardTilesFlow = preferencesRepository.selectedDashboardTilesFlow
-            .map { selectedDashboardTiles }
-        val isAdsEnabledFlow = preferencesRepository.isAdsEnabledFlow
-            .filter { (adsHelper.canShowAd && it) || !it }
-            .map { selectedDashboardTiles }
-        val isMobileAdsSdkInitializedFlow = adsHelper.isMobileAdsSdkInitialized
-            .filter { it }
-            .map { selectedDashboardTiles }
+        val isAdsEnabledFlow =
+            preferencesRepository.isAdsEnabledFlow.filter { (adsHelper.canShowAd && it) || !it }
+        val isMobileAdsSdkInitializedFlow = adsHelper.isMobileAdsSdkInitialized.filter { it }
 
         merge(
-            selectedDashboardTilesFlow,
-            isAdsEnabledFlow,
-            isMobileAdsSdkInitializedFlow
-        )
-            .onEach { loadData(tilesToLoad = it) }
-            .launch("dashboard_pref")
+            selectedDashboardTilesFlow, isAdsEnabledFlow, isMobileAdsSdkInitializedFlow
+        ).onEach { loadData(tilesToLoad = selectedDashboardTiles) }.launch("dashboard_pref")
     }
 
     fun onAdminMessageDismissed(adminMessage: AdminMessage) {
