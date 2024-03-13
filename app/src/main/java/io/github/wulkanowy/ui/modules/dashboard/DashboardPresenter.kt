@@ -76,6 +76,7 @@ class DashboardPresenter @Inject constructor(
 
     private var dashboardTileLoadedList = emptySet<DashboardItem.Tile>()
 
+    // List of types that have loaded actual data at least once
     private val firstLoadedItemList = mutableListOf<DashboardItem.Type>()
 
     private val selectedDashboardTiles
@@ -687,11 +688,11 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun updateData(dashboardItem: DashboardItem, forceRefresh: Boolean) {
-        val isForceRefreshError = forceRefresh && dashboardItem.error != null
-        val isFirstRunDataLoadedError =
-            dashboardItem.type in firstLoadedItemList && dashboardItem.error != null
-
-        if (!isForceRefreshError && !isFirstRunDataLoadedError) {
+        // Replace the existing item only if the new item isn't an error (because a snack bar will
+        // be shown instead), or if this item doesn't yet exist on the dashboard yet.
+        // It's better to show an error tile than nothing, and it's better to keep showing a tile
+        // with old data than replace it with an error tile.
+        if (dashboardItem.error == null || (!forceRefresh && dashboardItem.type !in firstLoadedItemList)) {
             with(dashboardItemLoadedList) {
                 removeAll { it.type == dashboardItem.type }
                 add(dashboardItem)
