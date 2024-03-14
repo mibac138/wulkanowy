@@ -3,15 +3,15 @@ package io.github.wulkanowy.ui.modules.notificationscenter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.data.db.entities.Notification
 import io.github.wulkanowy.databinding.ItemNotificationsCenterBinding
+import io.github.wulkanowy.utils.SyncListAdapter
 import io.github.wulkanowy.utils.toFormattedString
 import javax.inject.Inject
 
 class NotificationsCenterAdapter @Inject constructor() :
-    ListAdapter<Notification, NotificationsCenterAdapter.ViewHolder>(DiffUtilCallback()) {
+    SyncListAdapter<Notification, NotificationsCenterAdapter.ViewHolder>(DiffUtilCallback()) {
 
     var onItemClickListener: (Notification) -> Unit = {}
 

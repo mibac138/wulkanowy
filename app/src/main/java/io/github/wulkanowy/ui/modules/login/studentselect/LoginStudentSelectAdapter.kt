@@ -5,15 +5,19 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil.ItemCallback
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
-import io.github.wulkanowy.databinding.*
+import io.github.wulkanowy.databinding.ItemLoginStudentSelectEmptySymbolHeaderBinding
+import io.github.wulkanowy.databinding.ItemLoginStudentSelectHeaderSchoolBinding
+import io.github.wulkanowy.databinding.ItemLoginStudentSelectHeaderSymbolBinding
+import io.github.wulkanowy.databinding.ItemLoginStudentSelectHelpBinding
+import io.github.wulkanowy.databinding.ItemLoginStudentSelectStudentBinding
+import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 
 @SuppressLint("SetTextI18n")
 class LoginStudentSelectAdapter @Inject constructor() :
-    ListAdapter<LoginStudentSelectItem, RecyclerView.ViewHolder>(Differ) {
+    SyncListAdapter<LoginStudentSelectItem, RecyclerView.ViewHolder>(Differ) {
 
     override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
 
