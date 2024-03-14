@@ -659,8 +659,6 @@ class DashboardPresenter @Inject constructor(
         val filteredItems = itemsLoadedList.filterNot {
             it.type == DashboardItem.Type.ACCOUNT || it.type == DashboardItem.Type.ADMIN_MESSAGE
         }
-        val dataLoadedAdminMessageItem =
-            itemsLoadedList.find { it.type == DashboardItem.Type.ADMIN_MESSAGE && it.isDataLoaded } as DashboardItem.AdminMessages?
         val isAccountItemError =
             itemsLoadedList.find { it.type == DashboardItem.Type.ACCOUNT }?.error != null
         val isGeneralError =
@@ -675,13 +673,16 @@ class DashboardPresenter @Inject constructor(
 
         if (isGeneralError && isItemsLoaded) {
             lastError = itemsLoadedList.firstNotNullOf { it.error }
+            val adminMessageItem =
+                itemsLoadedList.filterIsInstance<DashboardItem.AdminMessages>()
+                    .firstOrNull { it.isDataLoaded }
 
             view?.run {
                 showProgress(false)
                 showRefresh(false)
                 if ((forceRefresh && wasGeneralError) || !forceRefresh) {
                     showContent(false)
-                    showErrorView(true, dataLoadedAdminMessageItem)
+                    showErrorView(true, adminMessageItem)
                     setErrorDetails(lastError)
                 }
             }
