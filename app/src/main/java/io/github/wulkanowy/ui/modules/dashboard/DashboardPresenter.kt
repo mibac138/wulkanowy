@@ -389,7 +389,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Grades(
                                 subjectWithGrades = it.dataOrNull,
@@ -438,7 +437,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Lessons(it.dataOrNull, isLoading = true),
                             false
@@ -488,7 +486,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Homework(it.dataOrNull.orEmpty(), isLoading = true),
                             false
@@ -516,7 +513,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Announcements(it.dataOrNull.orEmpty(), isLoading = true),
                             false
@@ -553,7 +549,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Exams(it.dataOrNull.orEmpty(), isLoading = true),
                             false
@@ -588,7 +583,6 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
                         updateData(
                             DashboardItem.Conferences(it.dataOrNull.orEmpty(), isLoading = true),
                             false
@@ -619,8 +613,7 @@ class DashboardPresenter @Inject constructor(
             .onEach {
                 when (it) {
                     is Resource.Loading -> {
-                        if (forceRefresh) return@onEach
-                        updateData(DashboardItem.AdminMessages(), false)
+                        updateData(DashboardItem.AdminMessages(isLoading = true), false)
                     }
 
                     is Resource.Success -> {
@@ -647,9 +640,7 @@ class DashboardPresenter @Inject constructor(
 
     private fun loadAds(forceRefresh: Boolean) {
         presenterScope.launch {
-            if (!forceRefresh) {
-                updateData(DashboardItem.Ads(), false)
-            }
+            updateData(DashboardItem.Ads(isLoading = true), false)
 
             val dashboardAdItem =
                 runCatching {
@@ -663,6 +654,7 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun updateData(dashboardItem: DashboardItem, forceRefresh: Boolean) {
+        if (forceRefresh && dashboardItem.isLoading) return
         if (!forceRefresh && dashboardItem.isDataLoaded && dashboardItem.isLoading) {
             firstLoadedItemList += dashboardItem.type
         }
