@@ -387,33 +387,16 @@ class DashboardPresenter @Inject constructor(
             }
             .logResourceStatus("Loading dashboard grades")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Grades(
-                                subjectWithGrades = it.dataOrNull,
-                                gradeTheme = preferencesRepository.gradeColorTheme,
-                                isLoading = true
-                            ), false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(
-                            DashboardItem.Grades(
-                                subjectWithGrades = it.data,
-                                gradeTheme = preferencesRepository.gradeColorTheme
-                            ),
-                            forceRefresh
-                        )
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(DashboardItem.Grades(error = it.error), forceRefresh)
-                    }
-                }
+                updateData(
+                    DashboardItem.Grades(
+                        subjectWithGrades = it.dataOrNull,
+                        gradeTheme = preferencesRepository.gradeColorTheme,
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_grades", forceRefresh)
     }
 
@@ -435,28 +418,15 @@ class DashboardPresenter @Inject constructor(
         }
             .logResourceStatus("Loading dashboard lessons")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Lessons(it.dataOrNull, isLoading = true),
-                            false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(
-                            DashboardItem.Lessons(it.data), forceRefresh
-                        )
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(
-                            DashboardItem.Lessons(error = it.error), forceRefresh
-                        )
-                    }
-                }
+                updateData(
+                    DashboardItem.Lessons(
+                        lessons = it.dataOrNull,
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_lessons", forceRefresh)
     }
 
@@ -484,24 +454,15 @@ class DashboardPresenter @Inject constructor(
             }
             .logResourceStatus("Loading dashboard homework")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Homework(it.dataOrNull.orEmpty(), isLoading = true),
-                            false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(DashboardItem.Homework(it.data), forceRefresh)
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(DashboardItem.Homework(error = it.error), forceRefresh)
-                    }
-                }
+                updateData(
+                    DashboardItem.Homework(
+                        homework = it.dataOrNull.orEmpty(),
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_homework", forceRefresh)
     }
 
@@ -511,24 +472,15 @@ class DashboardPresenter @Inject constructor(
         }
             .logResourceStatus("Loading dashboard announcements")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Announcements(it.dataOrNull.orEmpty(), isLoading = true),
-                            false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(DashboardItem.Announcements(it.data), forceRefresh)
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(DashboardItem.Announcements(error = it.error), forceRefresh)
-                    }
-                }
+                updateData(
+                    DashboardItem.Announcements(
+                        announcement = it.dataOrNull.orEmpty(),
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_announcements", forceRefresh)
     }
 
@@ -547,24 +499,15 @@ class DashboardPresenter @Inject constructor(
             .mapResourceData { exams -> exams.sortedBy { exam -> exam.date } }
             .logResourceStatus("Loading dashboard exams")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Exams(it.dataOrNull.orEmpty(), isLoading = true),
-                            false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(DashboardItem.Exams(it.data), forceRefresh)
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(DashboardItem.Exams(error = it.error), forceRefresh)
-                    }
-                }
+                updateData(
+                    DashboardItem.Exams(
+                        exams = it.dataOrNull.orEmpty(),
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_exams", forceRefresh)
     }
 
@@ -581,24 +524,15 @@ class DashboardPresenter @Inject constructor(
         }
             .logResourceStatus("Loading dashboard conferences")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(
-                            DashboardItem.Conferences(it.dataOrNull.orEmpty(), isLoading = true),
-                            false
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        updateData(DashboardItem.Conferences(it.data), forceRefresh)
-                    }
-
-                    is Resource.Error -> {
-                        errorHandler.dispatch(it.error)
-                        updateData(DashboardItem.Conferences(error = it.error), forceRefresh)
-                    }
-                }
+                updateData(
+                    DashboardItem.Conferences(
+                        conferences = it.dataOrNull.orEmpty(),
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_conferences", forceRefresh)
     }
 
@@ -611,30 +545,15 @@ class DashboardPresenter @Inject constructor(
         }
             .logResourceStatus("Loading dashboard admin message")
             .onEach {
-                when (it) {
-                    is Resource.Loading -> {
-                        updateData(DashboardItem.AdminMessages(isLoading = true), false)
-                    }
-
-                    is Resource.Success -> {
-                        updateData(
-                            dashboardItem = DashboardItem.AdminMessages(adminMessage = it.data),
-                            forceRefresh = forceRefresh
-                        )
-                    }
-
-                    is Resource.Error -> {
-                        Timber.e(it.error)
-                        updateData(
-                            dashboardItem = DashboardItem.AdminMessages(
-                                adminMessage = null,
-                                error = it.error
-                            ),
-                            forceRefresh = forceRefresh
-                        )
-                    }
-                }
+                updateData(
+                    DashboardItem.AdminMessages(
+                        adminMessage = it.dataOrNull,
+                        isLoading = it is Resource.Loading,
+                        error = it.errorOrNull
+                    ), forceRefresh
+                )
             }
+            .onResourceError { Timber.e(it) }
             .launchWithUniqueRefreshJob("dashboard_admin_messages", forceRefresh)
     }
 
