@@ -5,26 +5,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.databinding.ItemMenuOrderBinding
-import io.github.wulkanowy.utils.toCallback
+import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 
 class MenuOrderAdapter @Inject constructor() :
-    RecyclerView.Adapter<MenuOrderAdapter.ViewHolder>() {
-
-    val items = mutableListOf<MenuOrderItem>()
-
-    fun submitList(newItems: List<MenuOrderItem>) {
-        val diffResult = DiffUtil.calculateDiff(Differ.toCallback(newItems, items.toMutableList()))
-
-        with(items) {
-            clear()
-            addAll(newItems)
-        }
-
-        diffResult.dispatchUpdatesTo(this)
-    }
-
-    override fun getItemCount() = items.size
+    SyncListAdapter<MenuOrderItem, MenuOrderAdapter.ViewHolder>(Differ) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
         ItemMenuOrderBinding.inflate(LayoutInflater.from(parent.context), parent, false)

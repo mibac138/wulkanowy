@@ -22,7 +22,7 @@ class MailboxChooserAdapter @Inject constructor() :
     )
 
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(items[position])
     }
 
     class ItemViewHolder(

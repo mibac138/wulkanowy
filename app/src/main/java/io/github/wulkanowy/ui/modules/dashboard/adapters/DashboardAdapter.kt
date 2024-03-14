@@ -32,12 +32,12 @@ import io.github.wulkanowy.databinding.ItemDashboardHorizontalGroupBinding
 import io.github.wulkanowy.databinding.ItemDashboardLessonsBinding
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
+import io.github.wulkanowy.utils.SyncListAdapter
 import io.github.wulkanowy.utils.createNameInitialsDrawable
 import io.github.wulkanowy.utils.dpToPx
 import io.github.wulkanowy.utils.getThemeAttrColor
 import io.github.wulkanowy.utils.left
 import io.github.wulkanowy.utils.nickOrName
-import io.github.wulkanowy.utils.toCallback
 import io.github.wulkanowy.utils.toFormattedString
 import timber.log.Timber
 import java.time.Duration
@@ -48,7 +48,8 @@ import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.timer
 
-class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class DashboardAdapter @Inject constructor() :
+    SyncListAdapter<DashboardItem, RecyclerView.ViewHolder>(Differ) {
 
     private var lessonsTimer: Timer? = null
 
@@ -75,22 +76,6 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
     var onAdminMessageClickListener: (String?) -> Unit = {}
 
     var onAdminMessageDismissClickListener: (AdminMessage) -> Unit = {}
-
-    val items = mutableListOf<DashboardItem>()
-
-    fun submitList(newItems: List<DashboardItem>) {
-        val diffResult =
-            DiffUtil.calculateDiff(Differ.toCallback(items.toMutableList(), newItems))
-
-        with(items) {
-            clear()
-            addAll(newItems)
-        }
-
-        diffResult.dispatchUpdatesTo(this)
-    }
-
-    override fun getItemCount() = items.size
 
     override fun getItemViewType(position: Int) = items[position].type.ordinal
 
@@ -296,7 +281,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val error = item.error
         val isLoading = item.isLoading
         val dashboardGradesAdapter = gradesViewHolder.adapter.apply {
-            this.items = subjectWithGrades.toList()
+            submitList(subjectWithGrades.toList())
             this.gradeColorTheme = gradeTheme ?: GradeColorTheme.VULCAN
         }
 
@@ -610,7 +595,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val isLoading = item.isLoading
         val context = homeworkViewHolder.binding.root.context
         val homeworkAdapter = homeworkViewHolder.adapter.apply {
-            this.items = homeworkList.take(MAX_VISIBLE_LIST_ITEMS)
+            submitList(homeworkList.take(MAX_VISIBLE_LIST_ITEMS))
         }
 
         with(homeworkViewHolder.binding) {
@@ -648,7 +633,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val isLoading = item.isLoading
         val context = announcementsViewHolder.binding.root.context
         val schoolAnnouncementsAdapter = announcementsViewHolder.adapter.apply {
-            this.items = schoolAnnouncementList.take(MAX_VISIBLE_LIST_ITEMS)
+            submitList(schoolAnnouncementList.take(MAX_VISIBLE_LIST_ITEMS))
         }
 
         with(announcementsViewHolder.binding) {
@@ -685,7 +670,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val isLoading = item.isLoading
         val context = examsViewHolder.binding.root.context
         val examAdapter = examsViewHolder.adapter.apply {
-            this.items = exams.take(MAX_VISIBLE_LIST_ITEMS)
+            submitList(exams.take(MAX_VISIBLE_LIST_ITEMS))
         }
 
         with(examsViewHolder.binding) {
@@ -721,7 +706,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         val isLoading = item.isLoading
         val context = conferencesViewHolder.binding.root.context
         val conferenceAdapter = conferencesViewHolder.adapter.apply {
-            this.items = conferences.take(MAX_VISIBLE_LIST_ITEMS)
+            submitList(conferences.take(MAX_VISIBLE_LIST_ITEMS))
         }
 
         with(conferencesViewHolder.binding) {

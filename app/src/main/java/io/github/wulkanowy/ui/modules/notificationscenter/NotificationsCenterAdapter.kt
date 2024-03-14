@@ -20,7 +20,7 @@ class NotificationsCenterAdapter @Inject constructor() :
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = getItem(position)
+        val item = items[position]
 
         with(holder.binding) {
             notificationsCenterItemTitle.text = item.title

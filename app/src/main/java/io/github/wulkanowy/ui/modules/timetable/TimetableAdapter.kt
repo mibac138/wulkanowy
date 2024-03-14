@@ -22,7 +22,7 @@ import javax.inject.Inject
 class TimetableAdapter @Inject constructor() :
     SyncListAdapter<TimetableItem, RecyclerView.ViewHolder>(Differ) {
 
-    override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
+    override fun getItemViewType(position: Int): Int = items[position].type.ordinal
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -50,7 +50,7 @@ class TimetableAdapter @Inject constructor() :
         if (payloads.isNotEmpty() && holder is NormalViewHolder) {
             updateTimeLeft(
                 binding = holder.binding,
-                timeLeft = (getItem(position) as TimetableItem.Normal).timeLeft,
+                timeLeft = (items[position] as TimetableItem.Normal).timeLeft,
             )
         } else super.onBindViewHolder(holder, position, payloads)
     }
@@ -59,17 +59,17 @@ class TimetableAdapter @Inject constructor() :
         when (holder) {
             is SmallViewHolder -> bindSmallView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Small,
+                item = items[position] as TimetableItem.Small,
             )
 
             is NormalViewHolder -> bindNormalView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Normal,
+                item = items[position] as TimetableItem.Normal,
             )
 
             is EmptyViewHolder -> bindEmptyView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Empty,
+                item = items[position] as TimetableItem.Empty,
             )
         }
     }

@@ -19,7 +19,7 @@ import javax.inject.Inject
 class LoginStudentSelectAdapter @Inject constructor() :
     SyncListAdapter<LoginStudentSelectItem, RecyclerView.ViewHolder>(Differ) {
 
-    override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
+    override fun getItemViewType(position: Int): Int = items[position].type.ordinal
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -44,11 +44,11 @@ class LoginStudentSelectAdapter @Inject constructor() :
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is EmptySymbolsHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.EmptySymbolsHeader)
-            is SymbolsHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.SymbolHeader)
-            is SchoolHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.SchoolHeader)
-            is StudentViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.Student)
-            is HelpViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.Help)
+            is EmptySymbolsHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.EmptySymbolsHeader)
+            is SymbolsHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.SymbolHeader)
+            is SchoolHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.SchoolHeader)
+            is StudentViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.Student)
+            is HelpViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.Help)
         }
     }
 
