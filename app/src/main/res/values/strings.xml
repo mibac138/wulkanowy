@@ -455,6 +455,9 @@
     <string name="lucky_number_notify_new_item">Today\'s lucky number is: %s</string>
     <string name="lucky_number_history_button">Show history</string>
 
+    <!--Captcha required-->
+    <string name="captcha_required_notify_title">Captcha required</string>
+    <string name="captcha_required_notify_content">Please complete captcha</string>
 
     <!--Lucky number history-->
     <string name="lucky_number_history_title">Lucky number history</string>
@@ -809,6 +812,7 @@
 
 
     <!--Notification Channels-->
+    <string name="channel_captcha_required">Captcha required</string>
     <string name="channel_new_grades">New grades</string>
     <string name="channel_new_homework">New homework</string>
     <string name="channel_new_conference">New conferences</string>
