@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Timetable
@@ -20,9 +19,37 @@ import io.github.wulkanowy.utils.toFormattedString
 import javax.inject.Inject
 
 class TimetableAdapter @Inject constructor() :
-    ListAdapter<TimetableItem, RecyclerView.ViewHolder>(differ) {
+    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
+    var items = mutableListOf<TimetableItem>()
+
+    override fun getItemViewType(position: Int): Int = items[position].type.ordinal
+
+    override fun getItemCount() = items.size
+
+    fun submitList(data: List<TimetableItem>) {
+        val oldList = items.toList()
+        val newList = data
+        val callback = object : DiffUtil.Callback() {
+            override fun getOldListSize() = oldList.size
+
+            override fun getNewListSize() = newList.size
+
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+                Differ.areItemsTheSame(oldList[oldItemPosition], newList[newItemPosition])
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+                Differ.areContentsTheSame(oldList[oldItemPosition], newList[newItemPosition])
+        }
+        val diffResult = DiffUtil.calculateDiff(callback)
+
+        with(items) {
+            clear()
+            addAll(newList)
+        }
+
+        diffResult.dispatchUpdatesTo(this)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -50,7 +77,7 @@ class TimetableAdapter @Inject constructor() :
         if (payloads.isNotEmpty() && holder is NormalViewHolder) {
             updateTimeLeft(
                 binding = holder.binding,
-                timeLeft = (getItem(position) as TimetableItem.Normal).timeLeft,
+                timeLeft = (items[position] as TimetableItem.Normal).timeLeft,
             )
         } else super.onBindViewHolder(holder, position, payloads)
     }
@@ -59,17 +86,17 @@ class TimetableAdapter @Inject constructor() :
         when (holder) {
             is SmallViewHolder -> bindSmallView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Small,
+                item = items[position] as TimetableItem.Small,
             )
 
             is NormalViewHolder -> bindNormalView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Normal,
+                item = items[position] as TimetableItem.Normal,
             )
 
             is EmptyViewHolder -> bindEmptyView(
                 binding = holder.binding,
-                item = getItem(position) as TimetableItem.Empty,
+                item = items[position] as TimetableItem.Empty,
             )
         }
     }
@@ -305,31 +332,29 @@ class TimetableAdapter @Inject constructor() :
     private class EmptyViewHolder(val binding: ItemTimetableEmptyBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    companion object {
-        private val differ = object : DiffUtil.ItemCallback<TimetableItem>() {
-            override fun areItemsTheSame(oldItem: TimetableItem, newItem: TimetableItem): Boolean =
-                when {
-                    oldItem is TimetableItem.Small && newItem is TimetableItem.Small -> {
-                        oldItem.lesson.start == newItem.lesson.start
-                    }
-
-                    oldItem is TimetableItem.Normal && newItem is TimetableItem.Normal -> {
-                        oldItem.lesson.start == newItem.lesson.start
-                    }
-
-                    else -> oldItem == newItem
+    object Differ : DiffUtil.ItemCallback<TimetableItem>() {
+        override fun areItemsTheSame(oldItem: TimetableItem, newItem: TimetableItem): Boolean =
+            when {
+                oldItem is TimetableItem.Small && newItem is TimetableItem.Small -> {
+                    oldItem.lesson.start == newItem.lesson.start
                 }
 
-            override fun areContentsTheSame(oldItem: TimetableItem, newItem: TimetableItem) =
-                oldItem == newItem
+                oldItem is TimetableItem.Normal && newItem is TimetableItem.Normal -> {
+                    oldItem.lesson.start == newItem.lesson.start
+                }
 
-            override fun getChangePayload(oldItem: TimetableItem, newItem: TimetableItem): Any? {
-                return if (oldItem is TimetableItem.Normal && newItem is TimetableItem.Normal) {
-                    if (oldItem.lesson == newItem.lesson && oldItem.showGroupsInPlan == newItem.showGroupsInPlan && oldItem.timeLeft != newItem.timeLeft) {
-                        "time_left"
-                    } else super.getChangePayload(oldItem, newItem)
-                } else super.getChangePayload(oldItem, newItem)
+                else -> oldItem == newItem
             }
+
+        override fun areContentsTheSame(oldItem: TimetableItem, newItem: TimetableItem) =
+            oldItem == newItem
+
+        override fun getChangePayload(oldItem: TimetableItem, newItem: TimetableItem): Any? {
+            return if (oldItem is TimetableItem.Normal && newItem is TimetableItem.Normal) {
+                if (oldItem.lesson == newItem.lesson && oldItem.showGroupsInPlan == newItem.showGroupsInPlan && oldItem.timeLeft != newItem.timeLeft) {
+                    "time_left"
+                } else super.getChangePayload(oldItem, newItem)
+            } else super.getChangePayload(oldItem, newItem)
         }
     }
 }
