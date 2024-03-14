@@ -18,7 +18,7 @@ class CaptchaRequiredNotification @Inject constructor(
             content = context.getString(R.string.captcha_required_notify_content),
             destination = Destination.Dashboard,
         )
-        appNotificationManager.sendSingleNotification(
+        appNotificationManager.trySendSingletonNotification(
             notificationData, NotificationType.CAPTCHA_REQUIRED, student
         )
     }
