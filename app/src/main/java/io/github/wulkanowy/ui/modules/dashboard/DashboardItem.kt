@@ -137,19 +137,23 @@ sealed class DashboardItem(
     enum class Type(
         val refreshBehavior: RefreshBehavior = RefreshBehavior.OnScreen,
         val importance: Importance = Importance.Blocking,
-        val loadingDisplay: LoadingDisplay = LoadingDisplay.Shown
+        val loadingDisplay: LoadingDisplay = LoadingDisplay.Shown,
+        val reorderable: Reorderable = Reorderable.Yes,
     ) {
         ADMIN_MESSAGE(
             refreshBehavior = RefreshBehavior.Always,
             importance = Importance.NonBlocking,
-            loadingDisplay = LoadingDisplay.Hidden
+            loadingDisplay = LoadingDisplay.Hidden,
+            reorderable = Reorderable.No,
         ),
-        ACCOUNT,
+        ACCOUNT(
+            reorderable = Reorderable.No,
+        ),
         HORIZONTAL_GROUP,
         LESSONS,
         ADS(
             importance = Importance.NonBlocking,
-            loadingDisplay = LoadingDisplay.Hidden
+            loadingDisplay = LoadingDisplay.Hidden,
         ),
         GRADES,
         HOMEWORK,
@@ -212,6 +216,10 @@ sealed class DashboardItem(
          * it's own loading state that can be independently displayed.
          */
         Shown
+    }
+
+    enum class Reorderable {
+        Yes, No
     }
 }
 
