@@ -15,6 +15,7 @@ import io.github.wulkanowy.databinding.ItemMessageBinding
 import io.github.wulkanowy.databinding.ItemMessageChipsBinding
 import io.github.wulkanowy.utils.getCompatColor
 import io.github.wulkanowy.utils.getThemeAttrColor
+import io.github.wulkanowy.utils.toCallback
 import io.github.wulkanowy.utils.toFormattedString
 import javax.inject.Inject
 
@@ -38,7 +39,7 @@ class MessageTabAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerVie
 
         if (originalMessagesSize != newMessagesSize) onChangesDetectedListener()
 
-        val diffResult = DiffUtil.calculateDiff(MessageTabDiffUtil(items, data))
+        val diffResult = DiffUtil.calculateDiff(MessageTabDiffer.toCallback(items, data))
         items = data.toMutableList()
 
         diffResult.dispatchUpdatesTo(this)
@@ -169,26 +170,20 @@ class MessageTabAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerVie
     class HeaderViewHolder(val binding: ItemMessageChipsBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    private class MessageTabDiffUtil(
-        private val old: List<MessageTabDataItem>, private val new: List<MessageTabDataItem>
-    ) : DiffUtil.Callback() {
-
-        override fun getOldListSize(): Int = old.size
-
-        override fun getNewListSize(): Int = new.size
-
-        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-            val oldItem = old[oldItemPosition]
-            val newItem = new[newItemPosition]
-
-            return if (oldItem is MessageTabDataItem.MessageItem && newItem is MessageTabDataItem.MessageItem) {
+    private object MessageTabDiffer : DiffUtil.ItemCallback<MessageTabDataItem>() {
+        override fun areItemsTheSame(
+            oldItem: MessageTabDataItem,
+            newItem: MessageTabDataItem
+        ) =
+            if (oldItem is MessageTabDataItem.MessageItem && newItem is MessageTabDataItem.MessageItem) {
                 oldItem.message.messageGlobalKey == newItem.message.messageGlobalKey
             } else {
                 oldItem.viewType == newItem.viewType
-            }
         }
 
-        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            old[oldItemPosition] == new[newItemPosition]
+        override fun areContentsTheSame(
+            oldItem: MessageTabDataItem,
+            newItem: MessageTabDataItem
+        ) = oldItem == newItem
     }
 }

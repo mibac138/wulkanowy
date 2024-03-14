@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.databinding.ItemMenuOrderBinding
+import io.github.wulkanowy.utils.toCallback
 import javax.inject.Inject
 
 class MenuOrderAdapter @Inject constructor() :
@@ -13,7 +14,7 @@ class MenuOrderAdapter @Inject constructor() :
     val items = mutableListOf<MenuOrderItem>()
 
     fun submitList(newItems: List<MenuOrderItem>) {
-        val diffResult = DiffUtil.calculateDiff(DiffCallback(newItems, items.toMutableList()))
+        val diffResult = DiffUtil.calculateDiff(Differ.toCallback(newItems, items.toMutableList()))
 
         with(items) {
             clear()
@@ -40,19 +41,11 @@ class MenuOrderAdapter @Inject constructor() :
 
     class ViewHolder(val binding: ItemMenuOrderBinding) : RecyclerView.ViewHolder(binding.root)
 
-    private class DiffCallback(
-        private val oldList: List<MenuOrderItem>,
-        private val newList: List<MenuOrderItem>
-    ) : DiffUtil.Callback() {
+    private object Differ : DiffUtil.ItemCallback<MenuOrderItem>() {
+        override fun areItemsTheSame(oldItem: MenuOrderItem, newItem: MenuOrderItem) =
+            oldItem.appMenuItem.destinationType == newItem.appMenuItem.destinationType
 
-        override fun getNewListSize() = newList.size
-
-        override fun getOldListSize() = oldList.size
-
-        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            oldList[oldItemPosition] == newList[newItemPosition]
-
-        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            oldList[oldItemPosition].appMenuItem.destinationType == newList[newItemPosition].appMenuItem.destinationType
+        override fun areContentsTheSame(oldItem: MenuOrderItem, newItem: MenuOrderItem) =
+            oldItem == newItem
     }
 }

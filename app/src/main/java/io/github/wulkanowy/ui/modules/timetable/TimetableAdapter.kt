@@ -15,6 +15,7 @@ import io.github.wulkanowy.databinding.ItemTimetableEmptyBinding
 import io.github.wulkanowy.databinding.ItemTimetableSmallBinding
 import io.github.wulkanowy.utils.getPlural
 import io.github.wulkanowy.utils.getThemeAttrColor
+import io.github.wulkanowy.utils.toCallback
 import io.github.wulkanowy.utils.toFormattedString
 import javax.inject.Inject
 
@@ -28,24 +29,12 @@ class TimetableAdapter @Inject constructor() :
     override fun getItemCount() = items.size
 
     fun submitList(data: List<TimetableItem>) {
-        val oldList = items.toList()
-        val newList = data
-        val callback = object : DiffUtil.Callback() {
-            override fun getOldListSize() = oldList.size
-
-            override fun getNewListSize() = newList.size
-
-            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-                Differ.areItemsTheSame(oldList[oldItemPosition], newList[newItemPosition])
-
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-                Differ.areContentsTheSame(oldList[oldItemPosition], newList[newItemPosition])
-        }
+        val callback = Differ.toCallback(items.toList(), data)
         val diffResult = DiffUtil.calculateDiff(callback)
 
         with(items) {
             clear()
-            addAll(newList)
+            addAll(data)
         }
 
         diffResult.dispatchUpdatesTo(this)
@@ -332,7 +321,7 @@ class TimetableAdapter @Inject constructor() :
     private class EmptyViewHolder(val binding: ItemTimetableEmptyBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    object Differ : DiffUtil.ItemCallback<TimetableItem>() {
+    private object Differ : DiffUtil.ItemCallback<TimetableItem>() {
         override fun areItemsTheSame(oldItem: TimetableItem, newItem: TimetableItem): Boolean =
             when {
                 oldItem is TimetableItem.Small && newItem is TimetableItem.Small -> {

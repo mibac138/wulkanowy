@@ -20,16 +20,31 @@ import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.db.entities.Timetable
 import io.github.wulkanowy.data.db.entities.TimetableHeader
 import io.github.wulkanowy.data.enums.GradeColorTheme
-import io.github.wulkanowy.databinding.*
+import io.github.wulkanowy.databinding.ItemDashboardAccountBinding
+import io.github.wulkanowy.databinding.ItemDashboardAdminMessageBinding
+import io.github.wulkanowy.databinding.ItemDashboardAdsBinding
+import io.github.wulkanowy.databinding.ItemDashboardAnnouncementsBinding
+import io.github.wulkanowy.databinding.ItemDashboardConferencesBinding
+import io.github.wulkanowy.databinding.ItemDashboardExamsBinding
+import io.github.wulkanowy.databinding.ItemDashboardGradesBinding
+import io.github.wulkanowy.databinding.ItemDashboardHomeworkBinding
+import io.github.wulkanowy.databinding.ItemDashboardHorizontalGroupBinding
+import io.github.wulkanowy.databinding.ItemDashboardLessonsBinding
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
-import io.github.wulkanowy.utils.*
+import io.github.wulkanowy.utils.createNameInitialsDrawable
+import io.github.wulkanowy.utils.dpToPx
+import io.github.wulkanowy.utils.getThemeAttrColor
+import io.github.wulkanowy.utils.left
+import io.github.wulkanowy.utils.nickOrName
+import io.github.wulkanowy.utils.toCallback
+import io.github.wulkanowy.utils.toFormattedString
 import timber.log.Timber
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
+import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.timer
 
@@ -65,7 +80,7 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
 
     fun submitList(newItems: List<DashboardItem>) {
         val diffResult =
-            DiffUtil.calculateDiff(DiffCallback(newItems, items.toMutableList()))
+            DiffUtil.calculateDiff(Differ.toCallback(items.toMutableList(), newItems))
 
         with(items) {
             clear()
@@ -790,20 +805,12 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
     class AdsViewHolder(val binding: ItemDashboardAdsBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    private class DiffCallback(
-        private val newList: List<DashboardItem>,
-        private val oldList: List<DashboardItem>
-    ) : DiffUtil.Callback() {
+    private object Differ : DiffUtil.ItemCallback<DashboardItem>() {
+        override fun areItemsTheSame(oldItem: DashboardItem, newItem: DashboardItem) =
+            oldItem.type == newItem.type
 
-        override fun getNewListSize() = newList.size
-
-        override fun getOldListSize() = oldList.size
-
-        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            newList[newItemPosition] == oldList[oldItemPosition]
-
-        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            newList[newItemPosition].type == oldList[oldItemPosition].type
+        override fun areContentsTheSame(oldItem: DashboardItem, newItem: DashboardItem) =
+            oldItem == newItem
     }
 
     private companion object {
