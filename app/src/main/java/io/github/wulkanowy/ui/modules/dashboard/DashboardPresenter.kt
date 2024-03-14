@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -82,8 +82,6 @@ class DashboardPresenter @Inject constructor(
 
     private val selectedDashboardTiles
         get() = preferencesRepository.selectedDashboardTiles
-            .filterNot { it == DashboardItem.Tile.ADS && !adsHelper.canShowAd }
-            .toSet()
 
     private lateinit var lastError: Throwable
 
@@ -96,14 +94,9 @@ class DashboardPresenter @Inject constructor(
             showContent(false)
         }
 
-        val selectedDashboardTilesFlow = preferencesRepository.selectedDashboardTilesFlow
-        val isAdsEnabledFlow =
-            preferencesRepository.isAdsEnabledFlow.filter { (adsHelper.canShowAd && it) || !it }
-        val isMobileAdsSdkInitializedFlow = adsHelper.isMobileAdsSdkInitialized.filter { it }
-
-        merge(
-            selectedDashboardTilesFlow, isAdsEnabledFlow, isMobileAdsSdkInitializedFlow
-        ).onEach { loadData(tilesToLoad = selectedDashboardTiles) }.launch("dashboard_pref")
+        preferencesRepository.selectedDashboardTilesFlow.onEach {
+            loadData(tilesToLoad = it)
+        }.launch("dashboard_pref")
     }
 
     fun onAdminMessageDismissed(adminMessage: AdminMessage) {
@@ -558,18 +551,24 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun loadAds(forceRefresh: Boolean) {
-        presenterScope.launch {
-            updateData(DashboardItem.Ads(isLoading = true), false)
+        combine(
+            adsHelper.isMobileAdsSdkInitialized.filter { it },
+            preferencesRepository.isAdsEnabledFlow
+        ) { _, adsEnabled ->
+            if (!adsEnabled || !adsHelper.canShowAd) {
+                // Can't just return - we need to make sure that if the user disabled ads they
+                // are actually removed.
+                updateData(DashboardItem.Ads(adBanner = null), forceRefresh)
+                return@combine
+            }
 
-            val dashboardAdItem =
-                runCatching {
-                    DashboardItem.Ads(adsHelper.getDashboardTileAdBanner(view!!.tileWidth))
-                }
-                    .onFailure { Timber.e(it) }
-                    .getOrElse { DashboardItem.Ads(error = it) }
+            updateData(DashboardItem.Ads(isLoading = true), false)
+            val dashboardAdItem = runCatching {
+                DashboardItem.Ads(adsHelper.getDashboardTileAdBanner(view!!.tileWidth))
+            }.onFailure { Timber.e(it) }.getOrElse { DashboardItem.Ads(error = it) }
 
             updateData(dashboardAdItem, forceRefresh)
-        }
+        }.launchIn(presenterScope)
     }
 
     private fun updateData(dashboardItem: DashboardItem, forceRefresh: Boolean) {
