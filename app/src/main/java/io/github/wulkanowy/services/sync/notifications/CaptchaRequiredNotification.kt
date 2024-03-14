@@ -19,6 +19,8 @@ class CaptchaRequiredNotification @Inject constructor(
     suspend fun notify(student: Student) {
         // Notification disabled
         if (!preferencesRepository.captchaRequiredNotificationEnabled) return
+        // User didn't solve the captcha since last notification
+        if (preferencesRepository.sentCaptchaNotification) return
 
         val minTimeBetweenNotifications =
             preferencesRepository.minTimeBetweenCaptchaRequiredNotification
@@ -41,6 +43,7 @@ class CaptchaRequiredNotification @Inject constructor(
             )
         ) {
             preferencesRepository.lastCaptchaRequiredNotificationTime = Instant.now()
+            preferencesRepository.sentCaptchaNotification = true
         }
     }
 }

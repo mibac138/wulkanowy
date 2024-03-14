@@ -145,6 +145,10 @@ class PreferencesRepository @Inject constructor(
             )
         }
 
+    var sentCaptchaNotification: Boolean
+        get() = sharedPref.getBoolean("sentCaptchaNotification", false)
+        set(value) = sharedPref.edit { putBoolean("sentCaptchaNotification", value) }
+
     val servicesIntervalKey = context.getString(R.string.pref_key_services_interval)
     val servicesInterval: Long
         get() = getString(servicesIntervalKey, R.string.pref_default_services_interval).toLong()
