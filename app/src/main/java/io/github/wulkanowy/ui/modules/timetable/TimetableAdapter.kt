@@ -13,32 +13,16 @@ import io.github.wulkanowy.data.db.entities.Timetable
 import io.github.wulkanowy.databinding.ItemTimetableBinding
 import io.github.wulkanowy.databinding.ItemTimetableEmptyBinding
 import io.github.wulkanowy.databinding.ItemTimetableSmallBinding
+import io.github.wulkanowy.utils.SyncListAdapter
 import io.github.wulkanowy.utils.getPlural
 import io.github.wulkanowy.utils.getThemeAttrColor
-import io.github.wulkanowy.utils.toCallback
 import io.github.wulkanowy.utils.toFormattedString
 import javax.inject.Inject
 
 class TimetableAdapter @Inject constructor() :
-    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    SyncListAdapter<TimetableItem, RecyclerView.ViewHolder>(Differ) {
 
-    var items = mutableListOf<TimetableItem>()
-
-    override fun getItemViewType(position: Int): Int = items[position].type.ordinal
-
-    override fun getItemCount() = items.size
-
-    fun submitList(data: List<TimetableItem>) {
-        val callback = Differ.toCallback(items.toList(), data)
-        val diffResult = DiffUtil.calculateDiff(callback)
-
-        with(items) {
-            clear()
-            addAll(data)
-        }
-
-        diffResult.dispatchUpdatesTo(this)
-    }
+    override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -66,7 +50,7 @@ class TimetableAdapter @Inject constructor() :
         if (payloads.isNotEmpty() && holder is NormalViewHolder) {
             updateTimeLeft(
                 binding = holder.binding,
-                timeLeft = (items[position] as TimetableItem.Normal).timeLeft,
+                timeLeft = (getItem(position) as TimetableItem.Normal).timeLeft,
             )
         } else super.onBindViewHolder(holder, position, payloads)
     }
@@ -75,17 +59,17 @@ class TimetableAdapter @Inject constructor() :
         when (holder) {
             is SmallViewHolder -> bindSmallView(
                 binding = holder.binding,
-                item = items[position] as TimetableItem.Small,
+                item = getItem(position) as TimetableItem.Small,
             )
 
             is NormalViewHolder -> bindNormalView(
                 binding = holder.binding,
-                item = items[position] as TimetableItem.Normal,
+                item = getItem(position) as TimetableItem.Normal,
             )
 
             is EmptyViewHolder -> bindEmptyView(
                 binding = holder.binding,
-                item = items[position] as TimetableItem.Empty,
+                item = getItem(position) as TimetableItem.Empty,
             )
         }
     }
