@@ -350,7 +350,6 @@ class DashboardPresenter @Inject constructor(
                 if (it.isLoading) {
                     Timber.i("Loading horizontal group data started")
                 } else {
-                    firstLoadedItemList += DashboardItem.Type.HORIZONTAL_GROUP
                     Timber.i("Loading horizontal group result: Success")
                 }
             }
@@ -398,10 +397,6 @@ class DashboardPresenter @Inject constructor(
                                 isLoading = true
                             ), false
                         )
-
-                        if (!it.dataOrNull.isNullOrEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.GRADES
-                        }
                     }
 
                     is Resource.Success -> {
@@ -448,10 +443,6 @@ class DashboardPresenter @Inject constructor(
                             DashboardItem.Lessons(it.dataOrNull, isLoading = true),
                             false
                         )
-
-                        if (!it.dataOrNull?.lessons.isNullOrEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.LESSONS
-                        }
                     }
 
                     is Resource.Success -> {
@@ -498,15 +489,10 @@ class DashboardPresenter @Inject constructor(
                 when (it) {
                     is Resource.Loading -> {
                         if (forceRefresh) return@onEach
-                        val data = it.dataOrNull.orEmpty()
                         updateData(
-                            DashboardItem.Homework(data, isLoading = true),
+                            DashboardItem.Homework(it.dataOrNull.orEmpty(), isLoading = true),
                             false
                         )
-
-                        if (data.isNotEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.HOMEWORK
-                        }
                     }
 
                     is Resource.Success -> {
@@ -535,10 +521,6 @@ class DashboardPresenter @Inject constructor(
                             DashboardItem.Announcements(it.dataOrNull.orEmpty(), isLoading = true),
                             false
                         )
-
-                        if (!it.dataOrNull.isNullOrEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.ANNOUNCEMENTS
-                        }
                     }
 
                     is Resource.Success -> {
@@ -576,10 +558,6 @@ class DashboardPresenter @Inject constructor(
                             DashboardItem.Exams(it.dataOrNull.orEmpty(), isLoading = true),
                             false
                         )
-
-                        if (!it.dataOrNull.isNullOrEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.EXAMS
-                        }
                     }
 
                     is Resource.Success -> {
@@ -615,10 +593,6 @@ class DashboardPresenter @Inject constructor(
                             DashboardItem.Conferences(it.dataOrNull.orEmpty(), isLoading = true),
                             false
                         )
-
-                        if (!it.dataOrNull.isNullOrEmpty()) {
-                            firstLoadedItemList += DashboardItem.Type.CONFERENCES
-                        }
                     }
 
                     is Resource.Success -> {
@@ -689,6 +663,10 @@ class DashboardPresenter @Inject constructor(
     }
 
     private fun updateData(dashboardItem: DashboardItem, forceRefresh: Boolean) {
+        if (!forceRefresh && dashboardItem.isDataLoaded && dashboardItem.isLoading) {
+            firstLoadedItemList += dashboardItem.type
+        }
+
         // Replace the existing item only if the new item isn't an error (because a snack bar will
         // be shown instead), or if this item doesn't yet exist on the dashboard yet.
         // It's better to show an error tile than nothing, and it's better to keep showing a tile
