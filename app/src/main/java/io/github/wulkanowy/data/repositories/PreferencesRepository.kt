@@ -94,6 +94,12 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
+    val gradeExpandModeFlow: Flow<GradeExpandMode>
+        get() = flowSharedPref.getString(
+            context.getString(R.string.pref_key_expand_grade_mode),
+            context.getString(R.string.pref_default_expand_grade_mode),
+        ).asFlow().map(GradeExpandMode::getByValue)
+
     val showAllSubjectsOnStatisticsList: Boolean
         get() = getBoolean(
             R.string.pref_key_grade_statistics_list,
@@ -111,6 +117,12 @@ class PreferencesRepository @Inject constructor(
                 R.string.pref_default_grade_color_scheme
             )
         )
+
+    val gradeColorThemeFlow: Flow<GradeColorTheme>
+        get() = flowSharedPref.getString(
+            context.getString(R.string.pref_key_grade_color_scheme),
+            context.getString(R.string.pref_default_grade_color_scheme)
+        ).asFlow().map(GradeColorTheme::getByValue)
 
     val appLanguageKey = context.getString(R.string.pref_key_app_language)
     val appLanguage
@@ -220,6 +232,11 @@ class PreferencesRepository @Inject constructor(
                 R.string.pref_default_grade_sorting_mode
             )
         )
+    val gradeSortingModeFlow: Flow<GradeSortingMode>
+        get() = getStringFlow(
+            R.string.pref_key_grade_sorting_mode,
+            R.string.pref_default_grade_sorting_mode
+        ).asFlow().map(GradeSortingMode::getByValue)
 
     val showTimetableGaps: TimetableGapsMode
         get() = TimetableGapsMode.getByValue(
@@ -229,11 +246,11 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
-    val showSubjectsWithoutGrades: Boolean
-        get() = getBoolean(
+    val showSubjectsWithoutGradesFlow: Flow<Boolean>
+        get() = getBooleanFlow(
             R.string.pref_key_subjects_without_grades,
             R.bool.pref_default_subjects_without_grades
-        )
+        ).asFlow()
 
     val isOptionalArithmeticAverageFlow: Flow<Boolean>
         get() = getBooleanFlow(

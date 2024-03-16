@@ -2,12 +2,13 @@ package io.github.wulkanowy.ui.modules.grade.details
 
 import io.github.wulkanowy.data.db.entities.Grade
 import io.github.wulkanowy.data.enums.GradeExpandMode
+import io.github.wulkanowy.data.enums.GradeSortingMode
 import io.github.wulkanowy.data.enums.GradeSortingMode.ALPHABETIC
 import io.github.wulkanowy.data.enums.GradeSortingMode.AVERAGE
 import io.github.wulkanowy.data.enums.GradeSortingMode.DATE
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
-import io.github.wulkanowy.data.onResourceData
+import io.github.wulkanowy.data.onResourceDataCombinedWith
 import io.github.wulkanowy.data.onResourceError
 import io.github.wulkanowy.data.onResourceIntermediate
 import io.github.wulkanowy.data.onResourceNotLoading
@@ -139,8 +140,18 @@ class GradeDetailsPresenter @Inject constructor(
             averageProvider.getGradesDetailsWithAverage(student, semesterId, forceRefresh)
         }
             .logResourceStatus("load grade details")
-            .onResourceData {
-                val gradeItems = createGradeItems(it)
+            .onResourceDataCombinedWith(
+                preferencesRepository.showSubjectsWithoutGradesFlow,
+                preferencesRepository.gradeSortingModeFlow,
+                preferencesRepository.gradeExpandModeFlow,
+                preferencesRepository.gradeColorThemeFlow,
+            ) { it, showSubjectsWithoutGrades, sortingMode, expandMode, colorTheme ->
+                val gradeItems = createGradeItems(
+                    it,
+                    showSubjectsWithoutGrades,
+                    sortingMode,
+                    expandMode
+                )
                 view?.run {
                     enableSwipe(true)
                     showProgress(false)
@@ -151,8 +162,8 @@ class GradeDetailsPresenter @Inject constructor(
                     updateMarkAsDoneButton()
                     updateData(
                         data = gradeItems,
-                        expandMode = preferencesRepository.gradeExpandMode,
-                        preferencesRepository.gradeColorTheme
+                        expandMode = expandMode,
+                        gradeColorTheme = colorTheme
                     )
                 }
             }
@@ -198,11 +209,16 @@ class GradeDetailsPresenter @Inject constructor(
         }
     }
 
-    private fun createGradeItems(items: List<GradeSubject>): List<GradeDetailsItem> =
+    private fun createGradeItems(
+        items: List<GradeSubject>,
+        showSubjectsWithoutGrades: Boolean,
+        gradeSortingMode: GradeSortingMode,
+        gradeExpandMode: GradeExpandMode
+    ): List<GradeDetailsItem> =
         items
-            .filterIf(!preferencesRepository.showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
+            .filterIf(!showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
             .run {
-                when (preferencesRepository.gradeSortingMode) {
+                when (gradeSortingMode) {
                     DATE -> sortedByDescending { it.grades.maxByOrNull(Grade::date)?.date }
                     ALPHABETIC -> sortedBy { it.subject.lowercase() }
                     AVERAGE -> sortedByDescending(GradeSubject::average)
@@ -219,7 +235,7 @@ class GradeDetailsPresenter @Inject constructor(
                     grades = subItems
                 )
 
-                if (preferencesRepository.gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
+                if (gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
                     listOf(header) + subItems
                 } else {
                     listOf(header)

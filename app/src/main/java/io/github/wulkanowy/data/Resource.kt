@@ -109,6 +109,32 @@ inline fun <T1, T2, R> Flow<Resource<T1>>.combineWithResourceData(
         }
     }
 
+inline fun <Data, T1, T2, T3, T4, R> Flow<Resource<Data>>.combineWithResourceData(
+    flow1: Flow<T1>,
+    flow2: Flow<T2>,
+    flow3: Flow<T3>,
+    flow4: Flow<T4>,
+    crossinline block: suspend (Data, T1, T2, T3, T4) -> R
+): Flow<Resource<R>> = combine(this, flow1, flow2, flow3, flow4) { resource, a, b, c, d ->
+    when (resource) {
+        is Resource.Success -> Resource.Success(block(resource.data, a, b, c, d))
+        is Resource.Intermediate -> Resource.Intermediate(block(resource.data, a, b, c, d))
+        is Resource.Loading -> Resource.Loading()
+        is Resource.Error -> Resource.Error(resource.error)
+    }
+}
+
+inline fun <Data, T1, T2, T3, T4> Flow<Resource<Data>>.onResourceDataCombinedWith(
+    flow1: Flow<T1>,
+    flow2: Flow<T2>,
+    flow3: Flow<T3>,
+    flow4: Flow<T4>,
+    crossinline block: suspend (Data, T1, T2, T3, T4) -> Unit
+): Flow<Resource<Data>> = combineWithResourceData(flow1, flow2, flow3, flow4) { data, a, b, c, d ->
+    block(data, a, b, c, d)
+    data
+}
+
 fun <T> Flow<Resource<T>>.logResourceStatus(name: String, showData: Boolean = false) = onEach {
     val description = when (it) {
         is Resource.Intermediate -> "intermediate data received" + if (showData) " (data: `${it.data}`)" else ""
