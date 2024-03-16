@@ -45,6 +45,25 @@ private constructor(private val updateStrategy: SyncListAdapter<T, VH>.(List<T>)
         onSubmit(old, data)
     }
 
+    /**
+     * Updates all items, same as submitList, however also disables animations temporarily.
+     * This prevents a flashing effect on some views. Should be used in favor of submitList when
+     * all data is changed (e.g. the selected day changes in timetable causing all lessons to change).
+     */
+    fun recreate(data: List<T>) {
+        val itemAnimator = recyclerView?.let {
+            val anim = it.itemAnimator
+            it.itemAnimator = null
+            anim
+        }
+        submitList(data)
+        if (itemAnimator != null) {
+            recyclerView?.let {
+                it.itemAnimator = itemAnimator
+            }
+        }
+    }
+
     fun moveItem(from: Int, to: Int) {
         Collections.swap(items, from, to)
         notifyItemMoved(from, to)
@@ -63,4 +82,14 @@ private constructor(private val updateStrategy: SyncListAdapter<T, VH>.(List<T>)
     protected open fun onSubmit(old: List<T>, new: List<T>) {}
 
     final override fun getItemCount() = items.size
+
+
+    private var recyclerView: RecyclerView? = null
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        this.recyclerView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        this.recyclerView = null
+    }
 }

@@ -108,8 +108,14 @@ class TimetableFragment : BaseFragment<FragmentTimetableBinding>(R.layout.fragme
         }
     }
 
-    override fun updateData(data: List<TimetableItem>) {
-        timetableAdapter.submitList(data)
+    private var lastDay: LocalDate? = null
+    override fun updateData(data: List<TimetableItem>, currentDate: LocalDate) {
+        if (lastDay != currentDate) {
+            timetableAdapter.recreate(data)
+        } else {
+            timetableAdapter.submitList(data)
+        }
+        lastDay = currentDate
     }
 
     override fun clearData() {

@@ -13,4 +13,7 @@ fun <T : Any> DiffUtil.ItemCallback<T>.toCallback(old: List<T>, new: List<T>) =
 
         override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
             this@toCallback.areContentsTheSame(old[oldItemPosition], new[newItemPosition])
+
+        override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int) =
+            this@toCallback.getChangePayload(old[oldItemPosition], new[newItemPosition])
     }
