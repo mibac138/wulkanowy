@@ -217,19 +217,17 @@ class GradeDetailsPresenter @Inject constructor(
                     .sortedByDescending { it.date }
                     .map { GradeDetailsItem.Grade(it) }
 
-                val gradeDetailsItems = listOf(
-                    GradeDetailsItem.Header(
-                        subject = gradeSubject.subject,
-                        average = gradeSubject.average,
-                        pointsSum = gradeSubject.points,
-                        grades = subItems
-                    )
+                val header = GradeDetailsItem.Header(
+                    subject = gradeSubject.subject,
+                    average = gradeSubject.average,
+                    pointsSum = gradeSubject.points,
+                    grades = subItems
                 )
 
                 if (preferencesRepository.gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
-                    gradeDetailsItems + subItems
+                    listOf(header) + subItems
                 } else {
-                    gradeDetailsItems
+                    listOf(header)
                 }
             }
     }
