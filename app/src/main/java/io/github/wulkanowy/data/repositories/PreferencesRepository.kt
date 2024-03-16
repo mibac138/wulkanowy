@@ -36,11 +36,11 @@ class PreferencesRepository @Inject constructor(
     private val json: Json,
 ) {
 
-    val isShowPresent: Boolean
-        get() = getBoolean(
+    val isShowPresentFlow: Flow<Boolean>
+        get() = getBooleanFlow(
             R.string.pref_key_attendance_present,
-            R.bool.pref_default_attendance_present
-        )
+            R.bool.pref_default_attendance_present,
+        ).asFlow()
 
     val targetAttendanceFlow: Flow<Int>
         get() = flowSharedPref.getInt(

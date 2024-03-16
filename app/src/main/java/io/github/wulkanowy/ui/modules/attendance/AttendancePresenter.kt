@@ -2,11 +2,11 @@ package io.github.wulkanowy.ui.modules.attendance
 
 import android.annotation.SuppressLint
 import io.github.wulkanowy.data.Resource
+import io.github.wulkanowy.data.combineWithResourceData
 import io.github.wulkanowy.data.db.entities.Attendance
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
-import io.github.wulkanowy.data.mapResourceData
 import io.github.wulkanowy.data.onResourceData
 import io.github.wulkanowy.data.onResourceError
 import io.github.wulkanowy.data.onResourceIntermediate
@@ -245,10 +245,10 @@ class AttendancePresenter @Inject constructor(
             .onResourceLoading {
                 view?.showExcuseButton(false)
             }
-            .mapResourceData {
+            .combineWithResourceData(prefRepository.isShowPresentFlow) { it, isShowPresent ->
                 it
-                    .filterIf(!prefRepository.isShowPresent) { item -> !item.presence }
-                    .sortedBy { item -> item.number }
+                    .filterIf(!isShowPresent) { item -> !item.presence }
+                    .sortedBy(Attendance::number)
             }
             .onResourceData {
                 isWeekendHasLessons = isWeekendHasLessons || isWeekendHasLessons(it)
