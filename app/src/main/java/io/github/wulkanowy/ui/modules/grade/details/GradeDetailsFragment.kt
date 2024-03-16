@@ -90,7 +90,6 @@ class GradeDetailsFragment :
         with(gradeDetailsAdapter) {
             this.gradeColorTheme = gradeColorTheme
             setDataItems(data, expandMode)
-            notifyDataSetChanged()
         }
     }
 
@@ -101,7 +100,6 @@ class GradeDetailsFragment :
     override fun clearView() {
         with(gradeDetailsAdapter) {
             setDataItems(mutableListOf())
-            notifyDataSetChanged()
         }
     }
 
