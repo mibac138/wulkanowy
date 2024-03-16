@@ -1,8 +1,5 @@
 package io.github.wulkanowy.ui.modules.grade.summary
 
-import io.github.wulkanowy.data.enums.GradeSortingMode.ALPHABETIC
-import io.github.wulkanowy.data.enums.GradeSortingMode.AVERAGE
-import io.github.wulkanowy.data.enums.GradeSortingMode.DATE
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
 import io.github.wulkanowy.data.mapResourceData
@@ -138,19 +135,7 @@ class GradeSummaryPresenter @Inject constructor(
     private fun createGradeSummaryItems(items: List<GradeSubject>): List<GradeSummaryItem> {
         return items
             .filter { !checkEmpty(it) }
-            .let { gradeSubjects ->
-                when (preferencesRepository.gradeSortingMode) {
-                    DATE -> gradeSubjects.sortedByDescending { gradeDetailsWithAverage ->
-                        gradeDetailsWithAverage.grades.maxByOrNull { it.date }?.date
-                    }
-
-                    ALPHABETIC -> gradeSubjects.sortedBy { gradeDetailsWithAverage ->
-                        gradeDetailsWithAverage.subject.lowercase()
-                    }
-
-                    AVERAGE -> gradeSubjects.sortedByDescending { it.average }
-                }
-            }
+            .let { preferencesRepository.gradeSortingMode.sort(it) }
             .map {
                 val gradeSummary = it.summary.copy(average = it.average)
                 val descriptive = it.descriptive

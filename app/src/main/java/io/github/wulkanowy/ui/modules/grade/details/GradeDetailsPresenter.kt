@@ -3,9 +3,6 @@ package io.github.wulkanowy.ui.modules.grade.details
 import io.github.wulkanowy.data.combineWithResourceData
 import io.github.wulkanowy.data.db.entities.Grade
 import io.github.wulkanowy.data.enums.GradeSortingMode
-import io.github.wulkanowy.data.enums.GradeSortingMode.ALPHABETIC
-import io.github.wulkanowy.data.enums.GradeSortingMode.AVERAGE
-import io.github.wulkanowy.data.enums.GradeSortingMode.DATE
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
 import io.github.wulkanowy.data.onResourceDataCombinedWith
@@ -214,13 +211,7 @@ class GradeDetailsPresenter @Inject constructor(
     ): List<GradeDetailsItem.Header> =
         items
             .filterIf(!showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
-            .run {
-                when (gradeSortingMode) {
-                    DATE -> sortedByDescending { it.grades.maxByOrNull(Grade::date)?.date }
-                    ALPHABETIC -> sortedBy { it.subject.lowercase() }
-                    AVERAGE -> sortedByDescending(GradeSubject::average)
-                }
-            }
+            .let { gradeSortingMode.sort(it) }
             .map { gradeSubject ->
                 val subItems = gradeSubject.grades.sortedByDescending { it.date }
                     .map { GradeDetailsItem.Grade(it) }
