@@ -21,12 +21,12 @@ import io.github.wulkanowy.utils.getBackgroundColor
 import io.github.wulkanowy.utils.getCompatColor
 import io.github.wulkanowy.utils.toFormattedString
 import timber.log.Timber
-import java.util.*
+import java.util.BitSet
 import javax.inject.Inject
 
 class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<RecyclerView.ViewHolder>() {
 
-    private var headers = mutableListOf<GradeDetailsItem>()
+    private var headers = mutableListOf<GradeDetailsItem.Header>()
 
     private var items = mutableListOf<GradeDetailsItem>()
 
@@ -39,7 +39,7 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
     lateinit var gradeColorTheme: GradeColorTheme
 
     fun setDataItems(data: List<GradeDetailsItem>, expandMode: GradeExpandMode = this.expandMode) {
-        headers = data.filter { it.viewType == ViewType.HEADER }.toMutableList()
+        headers = data.filterIsInstance<GradeDetailsItem.Header>().toMutableList()
         items =
             (if (expandMode != GradeExpandMode.ALWAYS_EXPANDED) headers else data).toMutableList()
         this.expandMode = expandMode
@@ -47,12 +47,12 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
     }
 
     fun updateDetailsItem(position: Int, grade: Grade) {
-        items[position] = GradeDetailsItem(grade, ViewType.ITEM)
+        items[position] = GradeDetailsItem.Grade(grade)
         notifyItemChanged(position)
     }
 
-    fun getHeaderItem(subject: String): GradeDetailsItem {
-        val candidates = headers.filter { (it.value as GradeDetailsHeader).subject == subject }
+    fun getHeaderItem(subject: String): GradeDetailsItem.Header {
+        val candidates = headers.filter { it.subject == subject }
 
         if (candidates.size > 1) {
             Timber.e("Header with subject $subject found ${candidates.size} times! Expanded: $expandedPositions. Items: $candidates")
@@ -61,7 +61,7 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
         return candidates.first()
     }
 
-    fun updateHeaderItem(item: GradeDetailsItem) {
+    fun updateHeaderItem(item: GradeDetailsItem.Header) {
         val headerPosition = headers.indexOf(item)
         val itemPosition = items.indexOf(item)
 
@@ -107,19 +107,19 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
         when (holder) {
             is HeaderViewHolder -> bindHeaderViewHolder(
                 holder = holder,
-                header = items[position].value as GradeDetailsHeader,
+                header = items[position] as GradeDetailsItem.Header,
                 position = position
             )
+
             is ItemViewHolder -> bindItemViewHolder(
-                holder = holder,
-                grade = items[position].value as Grade
+                holder = holder, grade = (items[position] as GradeDetailsItem.Grade).grade
             )
         }
     }
 
     private fun bindHeaderViewHolder(
         holder: HeaderViewHolder,
-        header: GradeDetailsHeader,
+        header: GradeDetailsItem.Header,
         position: Int
     ) {
         val context = holder.binding.root.context
@@ -156,7 +156,7 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
 
     private fun expandGradeHeader(
         headerPosition: Int,
-        header: GradeDetailsHeader,
+        header: GradeDetailsItem.Header,
         holder: HeaderViewHolder
     ) {
         if (expandMode == GradeExpandMode.ONE) {
@@ -165,7 +165,7 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
             expandedPositions.clear()
 
             if (!isHeaderExpanded) {
-                val updatedItemList = headers.toMutableList()
+                val updatedItemList = headers.toMutableList<GradeDetailsItem>()
                     .apply { addAll(headerPosition + 1, header.grades) }
 
                 expandedPositions.set(headerPosition)

@@ -5,7 +5,9 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.View.*
+import android.view.View.GONE
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.wulkanowy.R
@@ -107,11 +109,11 @@ class GradeDetailsFragment :
         binding.gradeDetailsRecycler.smoothScrollToPosition(0)
     }
 
-    override fun getHeaderOfItem(subject: String): GradeDetailsItem {
+    override fun getHeaderOfItem(subject: String): GradeDetailsItem.Header {
         return gradeDetailsAdapter.getHeaderItem(subject)
     }
 
-    override fun updateHeaderItem(item: GradeDetailsItem) {
+    override fun updateHeaderItem(item: GradeDetailsItem.Header) {
         gradeDetailsAdapter.updateHeaderItem(item)
     }
 

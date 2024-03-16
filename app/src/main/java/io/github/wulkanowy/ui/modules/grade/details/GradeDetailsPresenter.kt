@@ -65,7 +65,7 @@ class GradeDetailsPresenter @Inject constructor(
                 grade.isRead = true
                 updateItem(grade, position)
                 getHeaderOfItem(grade.subject).let { header ->
-                    (header.value as GradeDetailsHeader).newGrades--
+                    header.newGrades--
                     updateHeaderItem(header)
                 }
                 newGradesAmount--
@@ -216,19 +216,17 @@ class GradeDetailsPresenter @Inject constructor(
             .flatMap { gradeSubject ->
                 val subItems = gradeSubject.grades
                     .sortedByDescending { it.date }
-                    .map { GradeDetailsItem(it, ViewType.ITEM) }
+                    .map { GradeDetailsItem.Grade(it) }
 
                 val gradeDetailsItems = listOf(
-                    GradeDetailsItem(
-                        GradeDetailsHeader(
-                            subject = gradeSubject.subject,
-                            average = gradeSubject.average,
-                            pointsSum = gradeSubject.points,
-                            grades = subItems
-                        ).apply {
-                            newGrades = gradeSubject.grades.count { grade -> !grade.isRead }
-                        }, ViewType.HEADER
-                    )
+                    GradeDetailsItem.Header(
+                        subject = gradeSubject.subject,
+                        average = gradeSubject.average,
+                        pointsSum = gradeSubject.points,
+                        grades = subItems
+                    ).apply {
+                        newGrades = gradeSubject.grades.count { grade -> !grade.isRead }
+                    }
                 )
 
                 if (preferencesRepository.gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
