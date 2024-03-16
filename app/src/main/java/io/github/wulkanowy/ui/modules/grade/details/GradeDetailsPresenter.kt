@@ -198,23 +198,18 @@ class GradeDetailsPresenter @Inject constructor(
         }
     }
 
-    private fun createGradeItems(items: List<GradeSubject>): List<GradeDetailsItem> {
-        return items
+    private fun createGradeItems(items: List<GradeSubject>): List<GradeDetailsItem> =
+        items
             .filterIf(!preferencesRepository.showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
-            .let { gradeSubjects ->
+            .run {
                 when (preferencesRepository.gradeSortingMode) {
-                    DATE -> gradeSubjects.sortedByDescending { gradeDetailsWithAverage ->
-                        gradeDetailsWithAverage.grades.maxByOrNull { it.date }?.date
-                    }
-                    ALPHABETIC -> gradeSubjects.sortedBy { gradeDetailsWithAverage ->
-                        gradeDetailsWithAverage.subject.lowercase()
-                    }
-                    AVERAGE -> gradeSubjects.sortedByDescending { it.average }
+                    DATE -> sortedByDescending { it.grades.maxByOrNull(Grade::date)?.date }
+                    ALPHABETIC -> sortedBy { it.subject.lowercase() }
+                    AVERAGE -> sortedByDescending(GradeSubject::average)
                 }
             }
             .flatMap { gradeSubject ->
-                val subItems = gradeSubject.grades
-                    .sortedByDescending { it.date }
+                val subItems = gradeSubject.grades.sortedByDescending { it.date }
                     .map { GradeDetailsItem.Grade(it) }
 
                 val header = GradeDetailsItem.Header(
@@ -230,7 +225,6 @@ class GradeDetailsPresenter @Inject constructor(
                     listOf(header)
                 }
             }
-    }
 
     private fun updateGrade(grade: Grade) {
         resourceFlow { gradeRepository.updateGrade(grade) }
