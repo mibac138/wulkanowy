@@ -98,6 +98,12 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_grade_statistics_list
         )
 
+    val showAllSubjectsOnStatisticsListFlow: Flow<Boolean>
+        get() = getBooleanFlow(
+            R.string.pref_key_grade_statistics_list,
+            R.bool.pref_default_grade_statistics_list
+        ).asFlow()
+
     val appThemeKey = context.getString(R.string.pref_key_app_theme)
     val appTheme: AppTheme
         get() = AppTheme.getByValue(getString(appThemeKey, R.string.pref_default_app_theme))

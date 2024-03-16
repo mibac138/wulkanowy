@@ -137,6 +137,14 @@ inline fun <Data, T1, T2, T3, T4, R> Flow<Resource<Data>>.combineWithResourceDat
     }
 }
 
+inline fun <Data, T1> Flow<Resource<Data>>.onResourceDataCombinedWith(
+    flow1: Flow<T1>,
+    crossinline block: suspend (Data, T1) -> Unit
+): Flow<Resource<Data>> = combineWithResourceData(flow1) { data, a ->
+    block(data, a)
+    data
+}
+
 inline fun <Data, T1, T2> Flow<Resource<Data>>.onResourceDataCombinedWith(
     flow1: Flow<T1>,
     flow2: Flow<T2>,
