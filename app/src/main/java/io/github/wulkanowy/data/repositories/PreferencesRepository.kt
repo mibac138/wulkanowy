@@ -209,19 +209,17 @@ class PreferencesRepository @Inject constructor(
             R.bool.pref_default_fill_message_content
         )
 
-    val showGroupsInPlan: Boolean
-        get() = getBoolean(
+    val showGroupsInPlanFlow: Flow<Boolean>
+        get() = getBooleanFlow(
             R.string.pref_key_timetable_show_groups,
             R.bool.pref_default_timetable_show_groups
-        )
+        ).asFlow()
 
-    val showWholeClassPlan: TimetableMode
-        get() = TimetableMode.getByValue(
-            getString(
-                R.string.pref_key_timetable_show_whole_class,
-                R.string.pref_default_timetable_show_whole_class
-            )
-        )
+    val showWholeClassPlanFlow: Flow<TimetableMode>
+        get() = getStringFlow(
+            R.string.pref_key_timetable_show_whole_class,
+            R.string.pref_default_timetable_show_whole_class
+        ).asFlow().map(TimetableMode::getByValue)
 
     val gradeSortingModeFlow: Flow<GradeSortingMode>
         get() = getStringFlow(
@@ -236,6 +234,12 @@ class PreferencesRepository @Inject constructor(
                 R.string.pref_default_timetable_show_gaps
             )
         )
+
+    val showTimetableGapsFlow: Flow<TimetableGapsMode>
+        get() = getStringFlow(
+            R.string.pref_key_timetable_show_gaps,
+            R.string.pref_default_timetable_show_gaps
+        ).asFlow().map(TimetableGapsMode::getByValue)
 
     val showSubjectsWithoutGradesFlow: Flow<Boolean>
         get() = getBooleanFlow(
