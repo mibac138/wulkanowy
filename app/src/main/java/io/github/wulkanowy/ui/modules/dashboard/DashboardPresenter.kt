@@ -379,15 +379,16 @@ class DashboardPresenter @Inject constructor(
                 filteredSubjectWithGrades
             }
             .logResourceStatus("Loading dashboard grades")
-            .onEach {
+            .combine(preferencesRepository.gradeColorThemeFlow) { it, gradeColorTheme ->
                 updateData(
                     DashboardItem.Grades(
                         subjectWithGrades = it.dataOrNull,
-                        gradeTheme = preferencesRepository.gradeColorTheme,
+                        gradeTheme = gradeColorTheme,
                         isLoading = it is Resource.Loading,
                         error = it.errorOrNull
                     ), forceRefresh
                 )
+                it
             }
             .onResourceError { errorHandler.dispatch(it) }
             .launchWithUniqueRefreshJob("dashboard_grades", forceRefresh)
@@ -440,7 +441,7 @@ class DashboardPresenter @Inject constructor(
                 val currentDate = LocalDate.now()
 
                 val filteredHomework = homework.filter {
-                    (it.date.isAfter(currentDate) || it.date == currentDate) && !it.isDone
+                    it.date >= currentDate && !it.isDone
                 }.sortedBy { it.date }
 
                 filteredHomework
