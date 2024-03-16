@@ -213,7 +213,7 @@ class GradeDetailsPresenter @Inject constructor(
                     AVERAGE -> gradeSubjects.sortedByDescending { it.average }
                 }
             }
-            .map { gradeSubject ->
+            .flatMap { gradeSubject ->
                 val subItems = gradeSubject.grades
                     .sortedByDescending { it.date }
                     .map { GradeDetailsItem(it, ViewType.ITEM) }
@@ -236,7 +236,7 @@ class GradeDetailsPresenter @Inject constructor(
                 } else {
                     gradeDetailsItems
                 }
-            }.flatten()
+            }
     }
 
     private fun updateGrade(grade: Grade) {
