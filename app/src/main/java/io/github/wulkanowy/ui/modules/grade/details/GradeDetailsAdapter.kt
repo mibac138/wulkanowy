@@ -43,14 +43,18 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
         newExpandMode: GradeExpandMode = this.expandMode
     ) {
         headers = data.toMutableList()
-        items = when (newExpandMode != GradeExpandMode.ALWAYS_EXPANDED) {
-            true -> headers.toMutableList()
-            false -> headers.flatMapTo(mutableListOf()) {
-                listOf(it) + it.grades
+        items.clear()
+        when (newExpandMode != GradeExpandMode.ALWAYS_EXPANDED) {
+            true -> items.addAll(headers)
+            false -> for (header in headers) {
+                items.add(header)
+                items.addAll(header.grades)
             }
         }
-        this.expandMode = newExpandMode
-        expandedPositions.clear()
+        if (this.expandMode != newExpandMode) {
+            expandedPositions.clear()
+            this.expandMode = newExpandMode
+        }
     }
 
     fun updateDetailsItem(position: Int, grade: Grade) {
