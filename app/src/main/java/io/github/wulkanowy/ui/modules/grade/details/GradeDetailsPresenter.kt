@@ -226,7 +226,7 @@ class GradeDetailsPresenter @Inject constructor(
                             pointsSum = gradeSubject.points,
                             grades = subItems
                         ).apply {
-                            newGrades = gradeSubject.grades.filter { grade -> !grade.isRead }.size
+                            newGrades = gradeSubject.grades.count { grade -> !grade.isRead }
                         }, ViewType.HEADER
                     )
                 )
