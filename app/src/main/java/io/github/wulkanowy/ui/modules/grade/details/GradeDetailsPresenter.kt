@@ -149,8 +149,7 @@ class GradeDetailsPresenter @Inject constructor(
                 val gradeItems = createGradeItems(
                     it,
                     showSubjectsWithoutGrades,
-                    sortingMode,
-                    expandMode
+                    sortingMode
                 )
                 view?.run {
                     enableSwipe(true)
@@ -212,9 +211,8 @@ class GradeDetailsPresenter @Inject constructor(
     private fun createGradeItems(
         items: List<GradeSubject>,
         showSubjectsWithoutGrades: Boolean,
-        gradeSortingMode: GradeSortingMode,
-        gradeExpandMode: GradeExpandMode
-    ): List<GradeDetailsItem> =
+        gradeSortingMode: GradeSortingMode
+    ): List<GradeDetailsItem.Header> =
         items
             .filterIf(!showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
             .run {
@@ -224,22 +222,16 @@ class GradeDetailsPresenter @Inject constructor(
                     AVERAGE -> sortedByDescending(GradeSubject::average)
                 }
             }
-            .flatMap { gradeSubject ->
+            .map { gradeSubject ->
                 val subItems = gradeSubject.grades.sortedByDescending { it.date }
                     .map { GradeDetailsItem.Grade(it) }
 
-                val header = GradeDetailsItem.Header(
+                GradeDetailsItem.Header(
                     subject = gradeSubject.subject,
                     average = gradeSubject.average,
                     pointsSum = gradeSubject.points,
                     grades = subItems
                 )
-
-                if (gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
-                    listOf(header) + subItems
-                } else {
-                    listOf(header)
-                }
             }
 
     private fun updateGrade(grade: Grade) {

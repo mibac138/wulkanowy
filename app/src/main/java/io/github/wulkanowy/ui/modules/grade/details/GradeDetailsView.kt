@@ -11,7 +11,11 @@ interface GradeDetailsView : BaseView {
 
     fun initView()
 
-    fun updateData(data: List<GradeDetailsItem>, expandMode: GradeExpandMode, gradeColorTheme: GradeColorTheme)
+    fun updateData(
+        data: List<GradeDetailsItem.Header>,
+        expandMode: GradeExpandMode,
+        gradeColorTheme: GradeColorTheme
+    )
 
     fun updateItem(item: Grade, position: Int)
 

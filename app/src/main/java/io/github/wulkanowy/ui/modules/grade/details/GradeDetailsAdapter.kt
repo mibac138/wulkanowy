@@ -38,11 +38,18 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
 
     lateinit var gradeColorTheme: GradeColorTheme
 
-    fun setDataItems(data: List<GradeDetailsItem>, expandMode: GradeExpandMode = this.expandMode) {
-        headers = data.filterIsInstance<GradeDetailsItem.Header>().toMutableList()
-        items =
-            (if (expandMode != GradeExpandMode.ALWAYS_EXPANDED) headers else data).toMutableList()
-        this.expandMode = expandMode
+    fun setDataItems(
+        data: List<GradeDetailsItem.Header>,
+        newExpandMode: GradeExpandMode = this.expandMode
+    ) {
+        headers = data.toMutableList()
+        items = when (newExpandMode != GradeExpandMode.ALWAYS_EXPANDED) {
+            true -> headers.toMutableList()
+            false -> headers.flatMapTo(mutableListOf()) {
+                listOf(it) + it.grades
+            }
+        }
+        this.expandMode = newExpandMode
         expandedPositions.clear()
     }
 

@@ -82,7 +82,11 @@ class GradeDetailsFragment :
         else false
     }
 
-    override fun updateData(data: List<GradeDetailsItem>, expandMode: GradeExpandMode, gradeColorTheme: GradeColorTheme) {
+    override fun updateData(
+        data: List<GradeDetailsItem.Header>,
+        expandMode: GradeExpandMode,
+        gradeColorTheme: GradeColorTheme
+    ) {
         with(gradeDetailsAdapter) {
             this.gradeColorTheme = gradeColorTheme
             setDataItems(data, expandMode)
