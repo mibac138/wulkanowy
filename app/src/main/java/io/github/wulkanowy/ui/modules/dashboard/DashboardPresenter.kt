@@ -250,7 +250,7 @@ class DashboardPresenter @Inject constructor(
     }
 
     fun onDashboardTileSettingsSelected(): Boolean {
-        view?.showDashboardTileSettings(selectedDashboardTiles.toList())
+        view?.showDashboardTileSettings(selectedDashboardTiles)
         return true
     }
 
