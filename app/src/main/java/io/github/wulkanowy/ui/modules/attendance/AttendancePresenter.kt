@@ -22,6 +22,7 @@ import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.utils.AnalyticsHelper
 import io.github.wulkanowy.utils.capitalise
+import io.github.wulkanowy.utils.filterIf
 import io.github.wulkanowy.utils.getLastSchoolDayIfHoliday
 import io.github.wulkanowy.utils.isExcusableOrNotExcused
 import io.github.wulkanowy.utils.isHolidays
@@ -245,11 +246,9 @@ class AttendancePresenter @Inject constructor(
                 view?.showExcuseButton(false)
             }
             .mapResourceData {
-                if (prefRepository.isShowPresent) {
-                    it
-                } else {
-                    it.filter { item -> !item.presence }
-                }.sortedBy { item -> item.number }
+                it
+                    .filterIf(!prefRepository.isShowPresent) { item -> !item.presence }
+                    .sortedBy { item -> item.number }
             }
             .onResourceData {
                 isWeekendHasLessons = isWeekendHasLessons || isWeekendHasLessons(it)

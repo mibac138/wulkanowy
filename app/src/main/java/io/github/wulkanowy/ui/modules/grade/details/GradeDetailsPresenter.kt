@@ -22,6 +22,7 @@ import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.ui.modules.grade.GradeAverageProvider
 import io.github.wulkanowy.ui.modules.grade.GradeSubject
 import io.github.wulkanowy.utils.AnalyticsHelper
+import io.github.wulkanowy.utils.filterIf
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
@@ -200,11 +201,7 @@ class GradeDetailsPresenter @Inject constructor(
 
     private fun createGradeItems(items: List<GradeSubject>): List<GradeDetailsItem> {
         return items
-            .let { gradesWithAverages ->
-                if (!preferencesRepository.showSubjectsWithoutGrades) {
-                    gradesWithAverages.filter { it.grades.isNotEmpty() }
-                } else gradesWithAverages
-            }
+            .filterIf(!preferencesRepository.showSubjectsWithoutGrades) { it.grades.isNotEmpty() }
             .let { gradeSubjects ->
                 when (preferencesRepository.gradeSortingMode) {
                     DATE -> gradeSubjects.sortedByDescending { gradeDetailsWithAverage ->
