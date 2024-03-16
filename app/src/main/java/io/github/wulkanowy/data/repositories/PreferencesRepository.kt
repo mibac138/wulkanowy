@@ -58,9 +58,9 @@ class PreferencesRepository @Inject constructor(
      * Subjects are empty when they don't have any attendances (total = 0, attendances = 0, absences = 0).
      */
     val attendanceCalculatorShowEmptySubjects: Flow<Boolean>
-        get() = flowSharedPref.getBoolean(
-            context.getString(R.string.pref_key_attendance_calculator_show_empty_subjects),
-            context.resources.getBoolean(R.bool.pref_default_attendance_calculator_show_empty_subjects)
+        get() = getBooleanFlow(
+            R.string.pref_key_attendance_calculator_show_empty_subjects,
+            R.bool.pref_default_attendance_calculator_show_empty_subjects,
         ).asFlow()
 
     private val gradeAverageModePref: Preference<GradeAverageMode>
@@ -78,9 +78,9 @@ class PreferencesRepository @Inject constructor(
         get() = gradeAverageModePref.asFlow()
 
     private val gradeAverageForceCalcPref: Preference<Boolean>
-        get() = flowSharedPref.getBoolean(
-            context.getString(R.string.pref_key_grade_average_force_calc),
-            context.resources.getBoolean(R.bool.pref_default_grade_average_force_calc)
+        get() = getBooleanFlow(
+            R.string.pref_key_grade_average_force_calc,
+            R.bool.pref_default_grade_average_force_calc
         )
 
     val gradeAverageForceCalcFlow: Flow<Boolean>
@@ -236,9 +236,9 @@ class PreferencesRepository @Inject constructor(
         )
 
     val isOptionalArithmeticAverageFlow: Flow<Boolean>
-        get() = flowSharedPref.getBoolean(
-            context.getString(R.string.pref_key_optional_arithmetic_average),
-            context.resources.getBoolean(R.bool.pref_default_optional_arithmetic_average)
+        get() = getBooleanFlow(
+            R.string.pref_key_optional_arithmetic_average,
+            R.bool.pref_default_optional_arithmetic_average
         ).asFlow()
 
     var lasSyncDate: Instant?
@@ -399,6 +399,8 @@ class PreferencesRepository @Inject constructor(
     private fun getString(id: String, default: Int) =
         sharedPref.getString(id, context.getString(default)) ?: context.getString(default)
 
+    private fun getBooleanFlow(id: Int, default: Int) =
+        flowSharedPref.getBoolean(context.getString(id), context.resources.getBoolean(default))
     private fun getBoolean(id: Int, default: Int) = getBoolean(context.getString(id), default)
 
     private fun getBoolean(id: String, default: Int) =
