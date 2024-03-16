@@ -141,10 +141,14 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
                 header.grades.size,
                 header.grades.size
             )
-            gradeHeaderNote.isVisible = header.newGrades > 0
 
-            if (header.newGrades > 0) {
-                gradeHeaderNote.text = header.newGrades.toString()
+            header.newGrades.let { newGrades ->
+                if (newGrades > 0) {
+                    gradeHeaderNote.isVisible = true
+                    gradeHeaderNote.text = newGrades.toString()
+                } else {
+                    gradeHeaderNote.isVisible = false
+                }
             }
 
             gradeHeaderContainer.isEnabled = expandMode != GradeExpandMode.ALWAYS_EXPANDED

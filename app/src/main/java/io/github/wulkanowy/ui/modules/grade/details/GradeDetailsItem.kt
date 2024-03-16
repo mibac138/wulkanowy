@@ -14,7 +14,8 @@ sealed class GradeDetailsItem(val viewType: ViewType) {
         val pointsSum: String?,
         val grades: List<GradeDetailsItem.Grade>
     ) : GradeDetailsItem(ViewType.HEADER) {
-        var newGrades = 0
+        val newGrades: Int
+            get() = grades.count { !it.grade.isRead }
     }
 
     data class Grade(val grade: GradeEntity) :

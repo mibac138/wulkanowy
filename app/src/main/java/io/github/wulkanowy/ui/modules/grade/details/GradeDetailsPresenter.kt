@@ -64,10 +64,9 @@ class GradeDetailsPresenter @Inject constructor(
             if (!grade.isRead) {
                 grade.isRead = true
                 updateItem(grade, position)
-                getHeaderOfItem(grade.subject).let { header ->
-                    header.newGrades--
-                    updateHeaderItem(header)
-                }
+                val header = getHeaderOfItem(grade.subject)
+                // Required to update the unread grade count
+                updateHeaderItem(header)
                 newGradesAmount--
                 updateMarkAsDoneButton()
                 updateGrade(grade)
@@ -224,9 +223,7 @@ class GradeDetailsPresenter @Inject constructor(
                         average = gradeSubject.average,
                         pointsSum = gradeSubject.points,
                         grades = subItems
-                    ).apply {
-                        newGrades = gradeSubject.grades.count { grade -> !grade.isRead }
-                    }
+                    )
                 )
 
                 if (preferencesRepository.gradeExpandMode == GradeExpandMode.ALWAYS_EXPANDED) {
