@@ -223,13 +223,6 @@ class PreferencesRepository @Inject constructor(
             )
         )
 
-    val gradeSortingMode: GradeSortingMode
-        get() = GradeSortingMode.getByValue(
-            getString(
-                R.string.pref_key_grade_sorting_mode,
-                R.string.pref_default_grade_sorting_mode
-            )
-        )
     val gradeSortingModeFlow: Flow<GradeSortingMode>
         get() = getStringFlow(
             R.string.pref_key_grade_sorting_mode,

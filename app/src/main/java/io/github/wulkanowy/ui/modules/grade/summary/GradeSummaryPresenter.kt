@@ -1,8 +1,9 @@
 package io.github.wulkanowy.ui.modules.grade.summary
 
+import io.github.wulkanowy.data.combineWithResourceData
+import io.github.wulkanowy.data.enums.GradeSortingMode
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
-import io.github.wulkanowy.data.mapResourceData
 import io.github.wulkanowy.data.onResourceData
 import io.github.wulkanowy.data.onResourceError
 import io.github.wulkanowy.data.onResourceIntermediate
@@ -47,7 +48,9 @@ class GradeSummaryPresenter @Inject constructor(
             averageProvider.getGradesDetailsWithAverage(student, semesterId, forceRefresh)
         }
             .logResourceStatus("load grade summary")
-            .mapResourceData { createGradeSummaryItems(it) }
+            .combineWithResourceData(preferencesRepository.gradeSortingModeFlow) { it, sortingMode ->
+                createGradeSummaryItems(it, sortingMode)
+            }
             .onResourceData {
                 view?.run {
                     enableSwipe(true)
@@ -132,10 +135,12 @@ class GradeSummaryPresenter @Inject constructor(
         view?.showFinalAverageHelpDialog()
     }
 
-    private fun createGradeSummaryItems(items: List<GradeSubject>): List<GradeSummaryItem> {
+    private fun createGradeSummaryItems(
+        items: List<GradeSubject>, gradeSortingMode: GradeSortingMode
+    ): List<GradeSummaryItem> {
         return items
             .filter { !checkEmpty(it) }
-            .let { preferencesRepository.gradeSortingMode.sort(it) }
+            .let { gradeSortingMode.sort(it) }
             .map {
                 val gradeSummary = it.summary.copy(average = it.average)
                 val descriptive = it.descriptive
@@ -144,7 +149,6 @@ class GradeSummaryPresenter @Inject constructor(
                     gradeDescriptive = descriptive,
                 )
             }
-
     }
 
     private fun checkEmpty(gradeSummary: GradeSubject): Boolean {
