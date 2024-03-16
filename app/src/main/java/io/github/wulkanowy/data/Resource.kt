@@ -109,6 +109,19 @@ inline fun <T1, T2, R> Flow<Resource<T1>>.combineWithResourceData(
         }
     }
 
+inline fun <Data, T1, T2, R> Flow<Resource<Data>>.combineWithResourceData(
+    flow1: Flow<T1>,
+    flow2: Flow<T2>,
+    crossinline block: suspend (Data, T1, T2) -> R
+): Flow<Resource<R>> = combine(this, flow1, flow2) { resource, a, b ->
+    when (resource) {
+        is Resource.Success -> Resource.Success(block(resource.data, a, b))
+        is Resource.Intermediate -> Resource.Intermediate(block(resource.data, a, b))
+        is Resource.Loading -> Resource.Loading()
+        is Resource.Error -> Resource.Error(resource.error)
+    }
+}
+
 inline fun <Data, T1, T2, T3, T4, R> Flow<Resource<Data>>.combineWithResourceData(
     flow1: Flow<T1>,
     flow2: Flow<T2>,
@@ -122,6 +135,15 @@ inline fun <Data, T1, T2, T3, T4, R> Flow<Resource<Data>>.combineWithResourceDat
         is Resource.Loading -> Resource.Loading()
         is Resource.Error -> Resource.Error(resource.error)
     }
+}
+
+inline fun <Data, T1, T2> Flow<Resource<Data>>.onResourceDataCombinedWith(
+    flow1: Flow<T1>,
+    flow2: Flow<T2>,
+    crossinline block: suspend (Data, T1, T2) -> Unit
+): Flow<Resource<Data>> = combineWithResourceData(flow1, flow2) { data, a, b ->
+    block(data, a, b)
+    data
 }
 
 inline fun <Data, T1, T2, T3, T4> Flow<Resource<Data>>.onResourceDataCombinedWith(

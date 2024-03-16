@@ -1,5 +1,6 @@
 package io.github.wulkanowy.ui.modules.grade.details
 
+import io.github.wulkanowy.data.combineWithResourceData
 import io.github.wulkanowy.data.db.entities.Grade
 import io.github.wulkanowy.data.enums.GradeExpandMode
 import io.github.wulkanowy.data.enums.GradeSortingMode
@@ -140,27 +141,26 @@ class GradeDetailsPresenter @Inject constructor(
             averageProvider.getGradesDetailsWithAverage(student, semesterId, forceRefresh)
         }
             .logResourceStatus("load grade details")
-            .onResourceDataCombinedWith(
+            .combineWithResourceData(
                 preferencesRepository.showSubjectsWithoutGradesFlow,
                 preferencesRepository.gradeSortingModeFlow,
+            ) { it, showSubjectsWithoutGrades, gradeSortingMode ->
+                createGradeItems(it, showSubjectsWithoutGrades, gradeSortingMode)
+            }
+            .onResourceDataCombinedWith(
                 preferencesRepository.gradeExpandModeFlow,
                 preferencesRepository.gradeColorThemeFlow,
-            ) { it, showSubjectsWithoutGrades, sortingMode, expandMode, colorTheme ->
-                val gradeItems = createGradeItems(
-                    it,
-                    showSubjectsWithoutGrades,
-                    sortingMode
-                )
+            ) { it, expandMode, colorTheme ->
                 view?.run {
                     enableSwipe(true)
                     showProgress(false)
                     showErrorView(false)
-                    showContent(gradeItems.isNotEmpty())
-                    showEmpty(gradeItems.isEmpty())
+                    showContent(it.isNotEmpty())
+                    showEmpty(it.isEmpty())
                     updateNewGradesAmount(it)
                     updateMarkAsDoneButton()
                     updateData(
-                        data = gradeItems,
+                        data = it,
                         expandMode = expandMode,
                         gradeColorTheme = colorTheme
                     )
@@ -190,9 +190,9 @@ class GradeDetailsPresenter @Inject constructor(
             .launch()
     }
 
-    private fun updateNewGradesAmount(grades: List<GradeSubject>) {
-        newGradesAmount = grades.sumOf { item ->
-            item.grades.sumOf { grade -> (if (!grade.isRead) 1 else 0).toInt() }
+    private fun updateNewGradesAmount(headers: List<GradeDetailsItem.Header>) {
+        newGradesAmount = headers.sumOf { header ->
+            header.grades.count { !it.grade.isRead }
         }
     }
 
