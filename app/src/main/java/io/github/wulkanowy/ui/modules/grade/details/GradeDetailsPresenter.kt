@@ -2,7 +2,6 @@ package io.github.wulkanowy.ui.modules.grade.details
 
 import io.github.wulkanowy.data.combineWithResourceData
 import io.github.wulkanowy.data.db.entities.Grade
-import io.github.wulkanowy.data.enums.GradeExpandMode
 import io.github.wulkanowy.data.enums.GradeSortingMode
 import io.github.wulkanowy.data.enums.GradeSortingMode.ALPHABETIC
 import io.github.wulkanowy.data.enums.GradeSortingMode.AVERAGE
@@ -113,7 +112,7 @@ class GradeDetailsPresenter @Inject constructor(
     fun onParentViewReselected() {
         view?.run {
             if (!isViewEmpty) {
-                if (preferencesRepository.gradeExpandMode != GradeExpandMode.ALWAYS_EXPANDED) collapseAllItems()
+                collapseAllItems()
                 scrollToStart()
             }
         }

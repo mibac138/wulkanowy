@@ -39,6 +39,14 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
         data: List<GradeDetailsItem.Header>,
         newExpandMode: GradeExpandMode = this.expandMode
     ) {
+        // Prevent recreating all items and collapsing all items when changing layout unrelated
+        // settings, such as grade color theme.
+        if (headers == data && expandMode == newExpandMode) {
+            // Still need to update the items but there are no structural changes.
+            notifyItemRangeChanged(0, items.size)
+            return
+        }
+
         headers = data.toMutableList()
         expandMode = newExpandMode
         if (expandMode == GradeExpandMode.ALWAYS_EXPANDED) {
@@ -85,6 +93,9 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
     }
 
     fun collapseAll() {
+        if (expandMode == GradeExpandMode.ALWAYS_EXPANDED) {
+            return
+        }
         expandedPositions.clear()
         recreateItems()
     }

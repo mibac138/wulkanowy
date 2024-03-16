@@ -86,14 +86,6 @@ class PreferencesRepository @Inject constructor(
     val gradeAverageForceCalcFlow: Flow<Boolean>
         get() = gradeAverageForceCalcPref.asFlow()
 
-    val gradeExpandMode: GradeExpandMode
-        get() = GradeExpandMode.getByValue(
-            getString(
-                R.string.pref_key_expand_grade_mode,
-                R.string.pref_default_expand_grade_mode
-            )
-        )
-
     val gradeExpandModeFlow: Flow<GradeExpandMode>
         get() = flowSharedPref.getString(
             context.getString(R.string.pref_key_expand_grade_mode),
