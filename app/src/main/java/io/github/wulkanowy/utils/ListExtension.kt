@@ -1,5 +1,6 @@
 package io.github.wulkanowy.utils
 
+import java.util.EnumMap
 import java.util.EnumSet
 
 infix fun <T> List<T>.uniqueSubtract(other: List<T>): List<T> {
@@ -17,3 +18,5 @@ inline fun <reified T : Enum<T>> Iterable<T>.toEnumSet(): EnumSet<T> =
         }
     }
 
+
+inline fun <reified K : Enum<K>, V> EnumMap() = EnumMap<K, V>(K::class.java)
