@@ -659,21 +659,21 @@ class DashboardPresenter @Inject constructor(
         itemsLoadedList: Map<DashboardItem.Type, DashboardItem>,
         forceRefresh: Boolean
     ) {
-        val filteredItems = itemsLoadedList.filterNot { (type, _) ->
-            type == DashboardItem.Type.ACCOUNT || type == DashboardItem.Type.ADMIN_MESSAGE
+        // Admin message probably indicates a problem with our own messages service, and account is
+        // considered important enough to be handled specially - if it returns an error, all data
+        // is presumed to be invalid too.
+        val skippedItems = listOf(DashboardItem.Type.ADMIN_MESSAGE, DashboardItem.Tile.ACCOUNT)
+        val checkIsGeneralError = { items: Map<DashboardItem.Type, DashboardItem> ->
+            val filteredItems = items.filter { (type) -> type !in skippedItems }
+            val isAccountItemError = items[DashboardItem.Type.ACCOUNT]?.error != null
+            !filteredItems.values.any { it.error == null } || isAccountItemError
         }
-        val isAccountItemError = itemsLoadedList[DashboardItem.Type.ACCOUNT]?.error != null
-        val isGeneralError =
-            filteredItems.values.none { it.error == null } && filteredItems.isNotEmpty() || isAccountItemError
 
-        val filteredOriginalLoadedList =
-            dashboardItemLoadedList.filterNot { (type, _) -> type == DashboardItem.Type.ACCOUNT }
-        val wasAccountItemError = dashboardItemLoadedList[DashboardItem.Type.ACCOUNT]?.error != null
-        val wasGeneralError =
-            filteredOriginalLoadedList.values.none { it.error == null } && filteredOriginalLoadedList.isNotEmpty() || wasAccountItemError
-
+        val isGeneralError = checkIsGeneralError(itemsLoadedList)
         if (isGeneralError && isItemsLoaded) {
             lastError = itemsLoadedList.values.firstNotNullOf { it.error }
+
+            val wasGeneralError = checkIsGeneralError(dashboardItemLoadedList)
             val adminMessageItem =
                 (itemsLoadedList[DashboardItem.Type.ADMIN_MESSAGE] as DashboardItem.AdminMessages?)?.takeIf { it.isDataLoaded }
 
