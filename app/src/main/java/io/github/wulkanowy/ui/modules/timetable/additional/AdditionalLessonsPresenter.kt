@@ -11,6 +11,7 @@ import io.github.wulkanowy.data.onResourceSuccess
 import io.github.wulkanowy.data.repositories.SemesterRepository
 import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.data.repositories.TimetableRepository
+import io.github.wulkanowy.domain.timetable.IsStudentHasLessonsOnWeekendUseCase
 import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
 import io.github.wulkanowy.utils.AnalyticsHelper
@@ -34,10 +35,13 @@ class AdditionalLessonsPresenter @Inject constructor(
     errorHandler: ErrorHandler,
     private val semesterRepository: SemesterRepository,
     private val timetableRepository: TimetableRepository,
+    private val isStudentHasLessonsOnWeekendUseCase: IsStudentHasLessonsOnWeekendUseCase,
     private val analytics: AnalyticsHelper
 ) : BasePresenter<AdditionalLessonsView>(errorHandler, studentRepository) {
 
     private var baseDate: LocalDate = LocalDate.now().nextOrSameSchoolDay
+
+    private var isWeekendHasLessons: Boolean = false
 
     lateinit var currentDate: LocalDate
         private set
@@ -55,12 +59,18 @@ class AdditionalLessonsPresenter @Inject constructor(
     }
 
     fun onPreviousDay() {
-        loadData(currentDate.previousSchoolDay)
+        val date = if (isWeekendHasLessons) {
+            currentDate.minusDays(1)
+        } else currentDate.previousSchoolDay
+        loadData(date)
         reloadView()
     }
 
     fun onNextDay() {
-        loadData(currentDate.nextSchoolDay)
+        val date = if (isWeekendHasLessons) {
+            currentDate.plusDays(1)
+        } else currentDate.nextSchoolDay
+        loadData(date)
         reloadView()
     }
 
@@ -143,6 +153,8 @@ class AdditionalLessonsPresenter @Inject constructor(
         flatResourceFlow {
             val student = studentRepository.getCurrentStudent()
             val semester = semesterRepository.getCurrentSemester(student)
+
+            isWeekendHasLessons = isStudentHasLessonsOnWeekendUseCase(semester, currentDate)
             timetableRepository.getTimetable(
                 student = student,
                 semester = semester,
