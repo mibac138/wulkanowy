@@ -33,6 +33,7 @@ import io.github.wulkanowy.utils.AdsHelper
 import io.github.wulkanowy.utils.calculatePercentage
 import io.github.wulkanowy.utils.nextOrSameSchoolDay
 import io.github.wulkanowy.utils.sunday
+import io.github.wulkanowy.utils.toEnumSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -48,6 +49,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import java.time.LocalDate
+import java.util.EnumSet
 import javax.inject.Inject
 
 class DashboardPresenter @Inject constructor(
@@ -78,7 +80,7 @@ class DashboardPresenter @Inject constructor(
     private var dashboardTileLoadedList = emptySet<DashboardItem.Tile>()
 
     // List of types that have loaded actual data at least once
-    private val firstLoadedItemList = mutableListOf<DashboardItem.Type>()
+    private val firstLoadedItemList = EnumSet.noneOf(DashboardItem.Type::class.java)
 
     private val selectedDashboardTiles
         get() = preferencesRepository.selectedDashboardTiles
@@ -122,7 +124,7 @@ class DashboardPresenter @Inject constructor(
         forceRefresh: Boolean = false,
     ) {
         val oldDashboardTileLoadedList = dashboardTileLoadedList
-        dashboardItemsToLoad = tilesToLoad.map(DashboardItem.Tile::type).toSet()
+        dashboardItemsToLoad = tilesToLoad.map(DashboardItem.Tile::type).toEnumSet()
         dashboardTileLoadedList = tilesToLoad
 
         val itemsToLoad = generateDashboardTileListToLoad(
@@ -140,11 +142,13 @@ class DashboardPresenter @Inject constructor(
         dashboardLoadedTiles: Set<DashboardItem.Tile>,
         forceRefresh: Boolean
     ) = dashboardTilesToLoad.filter { newItemToLoad ->
-        forceRefresh || newItemToLoad.type.refreshBehavior == DashboardItem.RefreshBehavior.Always || dashboardLoadedTiles.none { it == newItemToLoad }
+        forceRefresh || newItemToLoad.type.refreshBehavior == DashboardItem.RefreshBehavior.Always || !dashboardLoadedTiles.contains(
+            newItemToLoad
+        )
     }
 
     private fun removeUnselectedTiles(tilesToLoad: Collection<DashboardItem.Tile>) {
-        dashboardItemLoadedList.removeAll { loadedTile -> dashboardItemsToLoad.none { it == loadedTile.type } }
+        dashboardItemLoadedList.removeAll { loadedTile -> !dashboardItemsToLoad.contains(loadedTile.type) }
 
         val horizontalGroup =
             dashboardItemLoadedList.firstNotNullOfOrNull { it as? DashboardItem.HorizontalGroup }

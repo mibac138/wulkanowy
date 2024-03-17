@@ -20,6 +20,7 @@ import io.github.wulkanowy.data.enums.TimetableMode
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.grade.GradeAverageMode
 import io.github.wulkanowy.ui.modules.settings.appearance.menuorder.AppMenuItem
+import io.github.wulkanowy.utils.toEnumSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
@@ -285,7 +286,7 @@ class PreferencesRepository @Inject constructor(
                     it
                         .map(DashboardItem.Tile::valueOf)
                         .plus(DashboardItem.Tile.allAlwaysEnabled())
-                        .toSet()
+                        .toEnumSet()
                 }, reverse = {
                     it
                         .filterNot(DashboardItem.Tile::alwaysEnabled)
