@@ -162,19 +162,30 @@ sealed class DashboardItem(
         CONFERENCES,
     }
 
-    enum class Tile(val type: Type) {
-        ADMIN_MESSAGE(Type.ADMIN_MESSAGE),
-        ACCOUNT(Type.ACCOUNT),
+    enum class Tile(
+        val type: Type,
+        /**
+         * Always enabled tiles are not toggleable through the settings and are always processed
+         * in the dashboard (but not necessarily actually displayed).
+         */
+        val alwaysEnabled: Boolean = false
+    ) {
+        ADMIN_MESSAGE(Type.ADMIN_MESSAGE, alwaysEnabled = true),
+        ACCOUNT(Type.ACCOUNT, alwaysEnabled = true),
         LUCKY_NUMBER(Type.HORIZONTAL_GROUP),
         MESSAGES(Type.HORIZONTAL_GROUP),
         ATTENDANCE(Type.HORIZONTAL_GROUP),
         LESSONS(Type.LESSONS),
-        ADS(Type.ADS),
+        ADS(Type.ADS, alwaysEnabled = true),
         GRADES(Type.GRADES),
         HOMEWORK(Type.HOMEWORK),
         ANNOUNCEMENTS(Type.ANNOUNCEMENTS),
         EXAMS(Type.EXAMS),
-        CONFERENCES(Type.CONFERENCES),
+        CONFERENCES(Type.CONFERENCES);
+
+        companion object {
+            fun allAlwaysEnabled() = entries.filter(Tile::alwaysEnabled)
+        }
     }
 
     enum class RefreshBehavior {

@@ -284,17 +284,11 @@ class PreferencesRepository @Inject constructor(
                 mapper = {
                     it
                         .map(DashboardItem.Tile::valueOf)
-                        .plus(
-                            listOfNotNull(
-                                DashboardItem.Tile.ACCOUNT,
-                                DashboardItem.Tile.ADMIN_MESSAGE,
-                                DashboardItem.Tile.ADS.takeIf { isAdsEnabled }
-                            )
-                        )
+                        .plus(DashboardItem.Tile.allAlwaysEnabled())
                         .toSet()
                 }, reverse = {
                     it
-                        .filterNot { it == DashboardItem.Tile.ACCOUNT || it == DashboardItem.Tile.ADMIN_MESSAGE }
+                        .filterNot(DashboardItem.Tile::alwaysEnabled)
                         .map(DashboardItem.Tile::name)
                         .toSet()
                 }
