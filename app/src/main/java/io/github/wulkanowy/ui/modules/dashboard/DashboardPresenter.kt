@@ -318,25 +318,19 @@ class DashboardPresenter @Inject constructor(
                     val resList = listOf(luckyNumberResource, messageResource, attendanceResource)
 
                     resList to DashboardItem.HorizontalGroup(
-                        isLoading = resList.any { it is Resource.Loading },
-                        error = resList.map { it.errorOrNull }.let { errors ->
-                            if (errors.all { it != null }) {
-                                errors.firstOrNull()
-                            } else null
-                        },
                         attendancePercentage = DashboardItem.HorizontalGroup.Cell(
                             data = attendanceResource.dataOrNull?.calculatePercentage(),
-                            error = attendanceResource.errorOrNull != null,
+                            error = attendanceResource.errorOrNull,
                             isLoading = attendanceResource is Resource.Loading,
                         ),
                         unreadMessagesCount = DashboardItem.HorizontalGroup.Cell(
                             data = messageResource.dataOrNull?.count { it.unread },
-                            error = messageResource.errorOrNull != null,
+                            error = messageResource.errorOrNull,
                             isLoading = messageResource is Resource.Loading,
                         ),
                         luckyNumber = DashboardItem.HorizontalGroup.Cell(
                             data = luckyNumberResource.dataOrNull?.luckyNumber,
-                            error = luckyNumberResource.errorOrNull != null,
+                            error = luckyNumberResource.errorOrNull,
                             isLoading = luckyNumberResource is Resource.Loading,
                         )
                     )
@@ -356,7 +350,7 @@ class DashboardPresenter @Inject constructor(
             .catch {
                 Timber.i("Loading horizontal group result: An exception occurred")
                 updateData(
-                    DashboardItem.HorizontalGroup(error = it),
+                    DashboardItem.HorizontalGroup(selfError = it),
                     forceRefresh,
                 )
                 errorHandler.dispatch(it)

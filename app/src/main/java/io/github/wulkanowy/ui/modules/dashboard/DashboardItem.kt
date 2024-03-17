@@ -47,27 +47,32 @@ sealed class DashboardItem(
     }
 
     data class HorizontalGroup(
-        val unreadMessagesCount: Cell<Int?>? = null,
+        val unreadMessagesCount: Cell<Int>? = null,
         val attendancePercentage: Cell<Double>? = null,
         val luckyNumber: Cell<Int>? = null,
-        override val error: Throwable? = null,
-        override val isLoading: Boolean = false
+        val selfError: Throwable? = null,
     ) : DashboardItem(Type.HORIZONTAL_GROUP) {
 
         data class Cell<T>(
-            val data: T?,
-            val error: Boolean,
-            val isLoading: Boolean,
+            val data: T? = null,
+            val error: Throwable? = null,
+            val isLoading: Boolean = false,
         ) {
             val isHidden: Boolean
-                get() = data == null && !error && !isLoading
+                get() = data == null && error == null && !isLoading
         }
 
-        override val isDataLoaded
-            get() = unreadMessagesCount?.isLoading == false || attendancePercentage?.isLoading == false || luckyNumber?.isLoading == false
+        private val cells = listOfNotNull(unreadMessagesCount, attendancePercentage, luckyNumber)
 
-        val isFullDataLoaded
-            get() = luckyNumber?.isLoading != true && attendancePercentage?.isLoading != true && unreadMessagesCount?.isLoading != true
+        override val error: Throwable? = selfError ?: cells.map { it.error }.let { errors ->
+            if (errors.all { it != null }) {
+                errors.firstOrNull()
+            } else null
+        }
+
+        override val isLoading = cells.any { it.isLoading }
+        override val isDataLoaded = cells.any { !it.isLoading }
+        val isFullDataLoaded = cells.all { !it.isLoading }
     }
 
     data class Grades(

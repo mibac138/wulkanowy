@@ -205,12 +205,12 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         isWideErrorShow: Boolean
     ) {
         with(dashboardHorizontalGroupItemLuckyValue) {
-            isVisible = item.luckyNumber?.error != true
+            isVisible = item.luckyNumber?.error == null
             text = if (item.luckyNumber?.data == 0) {
                 context.getString(R.string.dashboard_horizontal_group_no_data)
             } else item.luckyNumber?.data?.toString()
         }
-        dashboardHorizontalGroupItemLuckyError.isVisible = item.luckyNumber?.error == true
+        dashboardHorizontalGroupItemLuckyError.isVisible = item.luckyNumber?.error != null
         with(dashboardHorizontalGroupItemLuckyContainer) {
             isVisible = item.luckyNumber?.isHidden == false && !isWideErrorShow
             setOnClickListener { onLuckyNumberTileClickListener() }
@@ -233,9 +233,9 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         item: DashboardItem.HorizontalGroup,
         isWideErrorShow: Boolean
     ) {
-        dashboardHorizontalGroupItemMessageError.isVisible = item.unreadMessagesCount?.error == true
+        dashboardHorizontalGroupItemMessageError.isVisible = item.unreadMessagesCount?.error != null
         with(dashboardHorizontalGroupItemMessageValue) {
-            isVisible = item.unreadMessagesCount?.error != true
+            isVisible = item.unreadMessagesCount?.error == null
             text = item.unreadMessagesCount?.data.toString()
         }
         with(dashboardHorizontalGroupItemMessageContainer) {
@@ -268,9 +268,9 @@ class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView
         }
 
         dashboardHorizontalGroupItemAttendanceError.isVisible =
-            item.attendancePercentage?.error == true
+            item.attendancePercentage?.error != null
         with(dashboardHorizontalGroupItemAttendanceValue) {
-            isVisible = item.attendancePercentage?.error != true
+            isVisible = item.attendancePercentage?.error == null
             text = attendanceString
             setTextColor(attendanceColor)
         }
