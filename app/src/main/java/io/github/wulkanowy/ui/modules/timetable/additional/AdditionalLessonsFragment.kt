@@ -13,11 +13,7 @@ import io.github.wulkanowy.ui.modules.main.MainActivity
 import io.github.wulkanowy.ui.modules.main.MainView
 import io.github.wulkanowy.ui.modules.timetable.additional.add.AdditionalLessonAddDialog
 import io.github.wulkanowy.ui.widgets.DividerItemDecoration
-import io.github.wulkanowy.utils.dpToPx
-import io.github.wulkanowy.utils.firstSchoolDayInSchoolYear
-import io.github.wulkanowy.utils.getThemeAttrColor
-import io.github.wulkanowy.utils.lastSchoolDayInSchoolYear
-import io.github.wulkanowy.utils.openMaterialDatePicker
+import io.github.wulkanowy.utils.*
 import java.time.LocalDate
 import javax.inject.Inject
 

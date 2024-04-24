@@ -20,30 +20,16 @@ import io.github.wulkanowy.data.db.entities.Student
 import io.github.wulkanowy.data.db.entities.Timetable
 import io.github.wulkanowy.data.db.entities.TimetableHeader
 import io.github.wulkanowy.data.enums.GradeColorTheme
-import io.github.wulkanowy.databinding.ItemDashboardAccountBinding
-import io.github.wulkanowy.databinding.ItemDashboardAdminMessageBinding
-import io.github.wulkanowy.databinding.ItemDashboardAdsBinding
-import io.github.wulkanowy.databinding.ItemDashboardAnnouncementsBinding
-import io.github.wulkanowy.databinding.ItemDashboardConferencesBinding
-import io.github.wulkanowy.databinding.ItemDashboardExamsBinding
-import io.github.wulkanowy.databinding.ItemDashboardGradesBinding
-import io.github.wulkanowy.databinding.ItemDashboardHomeworkBinding
-import io.github.wulkanowy.databinding.ItemDashboardHorizontalGroupBinding
-import io.github.wulkanowy.databinding.ItemDashboardLessonsBinding
+import io.github.wulkanowy.databinding.*
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
-import io.github.wulkanowy.utils.createNameInitialsDrawable
-import io.github.wulkanowy.utils.dpToPx
-import io.github.wulkanowy.utils.getThemeAttrColor
-import io.github.wulkanowy.utils.left
-import io.github.wulkanowy.utils.nickOrName
-import io.github.wulkanowy.utils.toFormattedString
+import io.github.wulkanowy.utils.*
 import timber.log.Timber
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Timer
+import java.util.*
 import javax.inject.Inject
 import kotlin.concurrent.timer
 
@@ -101,45 +87,35 @@ class DashboardAdapter @Inject constructor() :
             DashboardItem.Type.ACCOUNT.ordinal -> AccountViewHolder(
                 ItemDashboardAccountBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.HORIZONTAL_GROUP.ordinal -> HorizontalGroupViewHolder(
                 ItemDashboardHorizontalGroupBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.GRADES.ordinal -> GradesViewHolder(
                 ItemDashboardGradesBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.LESSONS.ordinal -> LessonsViewHolder(
                 ItemDashboardLessonsBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.HOMEWORK.ordinal -> HomeworkViewHolder(
                 ItemDashboardHomeworkBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.ANNOUNCEMENTS.ordinal -> AnnouncementsViewHolder(
                 ItemDashboardAnnouncementsBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.EXAMS.ordinal -> ExamsViewHolder(
                 ItemDashboardExamsBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.CONFERENCES.ordinal -> ConferencesViewHolder(
                 ItemDashboardConferencesBinding.inflate(inflater, parent, false)
             )
-
             DashboardItem.Type.ADMIN_MESSAGE.ordinal -> AdminMessageViewHolder(
                 ItemDashboardAdminMessageBinding.inflate(inflater, parent, false),
                 onAdminMessageDismissClickListener = onAdminMessageDismissClickListener,
                 onAdminMessageClickListener = onAdminMessageClickListener,
             )
-
             DashboardItem.Type.ADS.ordinal -> AdsViewHolder(
                 ItemDashboardAdsBinding.inflate(inflater, parent, false)
             )
-
             else -> throw IllegalArgumentException()
         }
     }
@@ -265,15 +241,12 @@ class DashboardAdapter @Inject constructor() :
             attendancePercentage == null || attendancePercentage == .0 -> {
                 root.context.getThemeAttrColor(R.attr.colorOnSurface)
             }
-
             attendancePercentage <= ATTENDANCE_SECOND_WARNING_THRESHOLD -> {
                 root.context.getThemeAttrColor(R.attr.colorPrimary)
             }
-
             attendancePercentage <= ATTENDANCE_FIRST_WARNING_THRESHOLD -> {
                 root.context.getThemeAttrColor(R.attr.colorTimetableChange)
             }
-
             else -> root.context.getThemeAttrColor(R.attr.colorOnSurface)
         }
         val attendanceString = if (attendancePercentage == null || attendancePercentage == .0) {
@@ -364,28 +337,24 @@ class DashboardAdapter @Inject constructor() :
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = false
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
-
                 tomorrowTimetable.isNotEmpty() -> {
                     dateToNavigate = tomorrowDate
                     updateLessonView(item, tomorrowTimetable, binding)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = true
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
-
                 currentDayHeader != null && currentDayHeader.content.isNotBlank() -> {
                     dateToNavigate = currentDate
                     updateLessonView(item, emptyList(), binding, currentDayHeader)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = false
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
-
                 tomorrowDayHeader != null && tomorrowDayHeader.content.isNotBlank() -> {
                     dateToNavigate = tomorrowDate
                     updateLessonView(item, emptyList(), binding, tomorrowDayHeader)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = true
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
-
                 else -> {
                     dateToNavigate = currentDate
                     updateLessonView(item, emptyList(), binding)
@@ -493,7 +462,6 @@ class DashboardAdapter @Inject constructor() :
                     firstTitleText =
                         context.getString(R.string.dashboard_timetable_first_lesson_title_moment)
                 }
-
                 minutesToStartLesson < 240 -> {
                     firstTitleAndValueTextColor =
                         context.getThemeAttrColor(R.attr.colorOnSurface)
@@ -501,7 +469,6 @@ class DashboardAdapter @Inject constructor() :
                     firstTitleText =
                         context.getString(R.string.dashboard_timetable_first_lesson_title_soon)
                 }
-
                 else -> {
                     firstTitleAndValueTextColor =
                         context.getThemeAttrColor(R.attr.colorOnSurface)

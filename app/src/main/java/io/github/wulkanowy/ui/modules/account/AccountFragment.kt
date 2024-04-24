@@ -40,6 +40,7 @@ class AccountFragment : BaseFragment<FragmentAccountBinding>(R.layout.fragment_a
         setHasOptionsMenu(true)
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 

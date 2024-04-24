@@ -2,7 +2,7 @@ package io.github.wulkanowy.ui.modules.settings.appearance.menuorder
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import java.util.Collections
+import java.util.*
 
 class MenuItemMoveCallback(
     private val menuOrderAdapter: MenuOrderAdapter,

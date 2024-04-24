@@ -11,7 +11,7 @@ import javax.inject.Inject
 class MobileDeviceAdapter @Inject constructor() :
     RecyclerView.Adapter<MobileDeviceAdapter.ItemViewHolder>() {
 
-        var items = mutableListOf<MobileDevice>()
+    var items = mutableListOf<MobileDevice>()
 
     var onDeviceUnregisterListener: (device: MobileDevice, position: Int) -> Unit = { _, _ -> }
 

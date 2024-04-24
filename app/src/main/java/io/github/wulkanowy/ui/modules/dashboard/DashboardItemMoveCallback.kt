@@ -4,7 +4,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.ui.modules.dashboard.adapters.DashboardAdapter
 import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
-import java.util.Collections
+import java.util.*
 
 class DashboardItemMoveCallback(
     private val dashboardAdapter: DashboardAdapter,

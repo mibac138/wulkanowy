@@ -2,14 +2,9 @@ package io.github.wulkanowy.ui.modules.attendance
 
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.os.Bundle
+import android.view.*
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.View.GONE
-import android.view.View.INVISIBLE
-import android.view.View.VISIBLE
+import android.view.View.*
 import androidx.appcompat.view.ActionMode
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager

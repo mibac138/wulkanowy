@@ -7,8 +7,7 @@ import com.mikepenz.aboutlibraries.entity.Library
 import io.github.wulkanowy.databinding.ItemLicenseBinding
 import javax.inject.Inject
 
-class LicenseAdapter @Inject constructor() :
-    RecyclerView.Adapter<LicenseAdapter.ItemViewHolder>() {
+class LicenseAdapter @Inject constructor() : RecyclerView.Adapter<LicenseAdapter.ItemViewHolder>() {
 
     var items = emptyList<Library>()
 

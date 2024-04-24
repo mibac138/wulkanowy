@@ -21,7 +21,7 @@ import io.github.wulkanowy.utils.getBackgroundColor
 import io.github.wulkanowy.utils.getCompatColor
 import io.github.wulkanowy.utils.toFormattedString
 import timber.log.Timber
-import java.util.BitSet
+import java.util.*
 import javax.inject.Inject
 
 class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<RecyclerView.ViewHolder>() {
