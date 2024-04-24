@@ -9,7 +9,6 @@ import io.github.wulkanowy.data.enums.TimetableGapsMode.NO_GAPS
 import io.github.wulkanowy.data.enums.TimetableMode
 import io.github.wulkanowy.data.flatResourceFlow
 import io.github.wulkanowy.data.logResourceStatus
-import io.github.wulkanowy.data.mapResourceData
 import io.github.wulkanowy.data.onResourceData
 import io.github.wulkanowy.data.onResourceError
 import io.github.wulkanowy.data.onResourceIntermediate
@@ -82,7 +81,7 @@ class TimetablePresenter @Inject constructor(
         } else currentDate?.previousSchoolDay
 
         reloadView(date ?: return)
-        loadData()
+        loadData(isDayChanged = true)
     }
 
     fun onNextDay() {
@@ -91,7 +90,7 @@ class TimetablePresenter @Inject constructor(
         } else currentDate?.nextSchoolDay
 
         reloadView(date ?: return)
-        loadData()
+        loadData(isDayChanged = true)
     }
 
     fun onPickDate() {
@@ -105,7 +104,7 @@ class TimetablePresenter @Inject constructor(
 
     fun onSwipeRefresh() {
         Timber.i("Force refreshing the timetable")
-        loadData(true)
+        loadData(forceRefresh = true)
     }
 
     fun onRetry() {
@@ -113,7 +112,7 @@ class TimetablePresenter @Inject constructor(
             showErrorView(false)
             showProgress(true)
         }
-        loadData(true)
+        loadData(forceRefresh = true)
     }
 
     fun onDetailsClick() {
@@ -146,32 +145,31 @@ class TimetablePresenter @Inject constructor(
         return true
     }
 
-    private fun loadData(forceRefresh: Boolean = false) {
+    private fun loadData(forceRefresh: Boolean = false, isDayChanged: Boolean = false) {
         flatResourceFlow {
             val student = studentRepository.getCurrentStudent()
             val semester = semesterRepository.getCurrentSemester(student)
-            val currentDate = currentDate ?: now()
 
             isEduOne = student.isEduOne == true
             checkInitialAndCurrentDate(semester)
             timetableRepository.getTimetable(
                 student = student,
                 semester = semester,
-                start = currentDate,
+                start = currentDate ?: now(),
                 end = currentDate ?: now(),
                 forceRefresh = forceRefresh,
                 timetableType = TimetableRepository.TimetableType.NORMAL
-            ).mapResourceData { it to currentDate }
+            )
         }
             .logResourceStatus("load timetable data")
-            .onResourceData { (it, currentDate) ->
+            .onResourceData {
                 isWeekendHasLessons = isWeekendHasLessons || isWeekendHasLessonsUseCase(it.lessons)
 
                 view?.run {
                     enableSwipe(true)
                     showProgress(false)
                     showErrorView(false)
-                    updateData(it.lessons, currentDate)
+                    updateData(it.lessons, isDayChanged)
                     showContent(it.lessons.isNotEmpty())
                     showEmpty(it.lessons.isEmpty())
                     setDayHeaderMessage(it.headers.find { header -> header.date == currentDate }?.content)
@@ -179,7 +177,7 @@ class TimetablePresenter @Inject constructor(
                 }
             }
             .onResourceIntermediate { view?.showRefresh(true) }
-            .onResourceSuccess { (it) ->
+            .onResourceSuccess {
                 analytics.logEvent(
                     "load_data",
                     "type" to "timetable",
@@ -218,17 +216,14 @@ class TimetablePresenter @Inject constructor(
         }
     }
 
-    private fun updateData(lessons: List<Timetable>, currentDate: LocalDate) {
+    private fun updateData(lessons: List<Timetable>, isDayChanged: Boolean) {
         tickTimer?.cancel()
 
-        view?.updateData(createItems(lessons), currentDate)
+        view?.updateData(createItems(lessons), isDayChanged)
         if (currentDate == now()) {
             tickTimer = timer(period = 2_000, initialDelay = 2_000) {
                 Handler(Looper.getMainLooper()).post {
-                    if (this@TimetablePresenter.currentDate != currentDate) {
-                        return@post
-                    }
-                    view?.updateData(createItems(lessons), currentDate)
+                    view?.updateData(createItems(lessons), isDayChanged)
                 }
             }
         }

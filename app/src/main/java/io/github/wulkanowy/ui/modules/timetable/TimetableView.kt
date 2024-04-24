@@ -12,7 +12,7 @@ interface TimetableView : BaseView {
 
     fun initView()
 
-    fun updateData(data: List<TimetableItem>, currentDate: LocalDate)
+    fun updateData(data: List<TimetableItem>, isDayChanged: Boolean)
 
     fun updateNavigationDay(date: String)
 
