@@ -73,6 +73,7 @@ class MainPresenter @Inject constructor(
         syncManager.startPeriodicSyncWorker()
 
         checkAppSupport()
+        updateCurrentStudentAuthStatus()
 
         analytics.logEvent("app_open", "destination" to initDestination.toString())
         Timber.i("Main view was initialized with $initDestination")
@@ -190,5 +191,12 @@ class MainPresenter @Inject constructor(
             studentsWitSemesters?.singleOrNull { it.student.isCurrent }?.student ?: return
 
         view?.showStudentAvatar(currentStudent)
+    }
+
+    private fun updateCurrentStudentAuthStatus() {
+        presenterScope.launch {
+            runCatching { studentRepository.updateCurrentStudentAuthStatus() }
+                .onFailure { errorHandler.dispatch(it) }
+        }
     }
 }

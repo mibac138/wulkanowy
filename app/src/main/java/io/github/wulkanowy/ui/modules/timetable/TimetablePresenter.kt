@@ -61,6 +61,7 @@ class TimetablePresenter @Inject constructor(
 
     private var initialDate: LocalDate? = null
     private var isWeekendHasLessons: Boolean = false
+    private var isEduOne: Boolean = false
 
     var currentDate: LocalDate? = null
         private set
@@ -84,7 +85,7 @@ class TimetablePresenter @Inject constructor(
         } else currentDate?.previousSchoolDay
 
         reloadView(date ?: return)
-        loadData()
+        loadData(isDayChanged = true)
     }
 
     fun onNextDay() {
@@ -93,7 +94,7 @@ class TimetablePresenter @Inject constructor(
         } else currentDate?.nextSchoolDay
 
         reloadView(date ?: return)
-        loadData()
+        loadData(isDayChanged = true)
     }
 
     fun onPickDate() {
@@ -107,7 +108,7 @@ class TimetablePresenter @Inject constructor(
 
     fun onSwipeRefresh() {
         Timber.i("Force refreshing the timetable")
-        loadData(true)
+        loadData(forceRefresh = true)
     }
 
     fun onRetry() {
@@ -115,7 +116,7 @@ class TimetablePresenter @Inject constructor(
             showErrorView(false)
             showProgress(true)
         }
-        loadData(true)
+        loadData(forceRefresh = true)
     }
 
     fun onDetailsClick() {
@@ -148,11 +149,12 @@ class TimetablePresenter @Inject constructor(
         return true
     }
 
-    private fun loadData(forceRefresh: Boolean = false) {
+    private fun loadData(forceRefresh: Boolean = false, isDayChanged: Boolean = false) {
         flatResourceFlow {
             val student = studentRepository.getCurrentStudent()
             val semester = semesterRepository.getCurrentSemester(student)
 
+            isEduOne = student.isEduOne == true
             checkInitialAndCurrentDate(semester)
             timetableRepository.getTimetable(
                 student = student,
@@ -171,9 +173,9 @@ class TimetablePresenter @Inject constructor(
                     enableSwipe(true)
                     showProgress(false)
                     showErrorView(false)
+                    updateData(it, isDayChanged)
                     showContent(it.lessons.isNotEmpty() || it.additional.isNotEmpty())
                     showEmpty(it.lessons.isEmpty() && it.additional.isEmpty())
-                    updateData(it)
                     setDayHeaderMessage(it.headers.find { header -> header.date == currentDate }?.content)
                     reloadNavigation()
                 }
@@ -218,15 +220,14 @@ class TimetablePresenter @Inject constructor(
         }
     }
 
-    private fun updateData(lessons: TimetableFull) {
+    private fun updateData(lessons: TimetableFull, isDayChanged: Boolean) {
         tickTimer?.cancel()
 
-        if (currentDate != now()) {
-            view?.updateData(createItems(lessons))
-        } else {
-            tickTimer = timer(period = 2_000) {
+        view?.updateData(createItems(lessons), isDayChanged)
+        if (currentDate == now()) {
+            tickTimer = timer(period = 2_000, initialDelay = 2_000) {
                 Handler(Looper.getMainLooper()).post {
-                    view?.updateData(createItems(lessons))
+                    view?.updateData(createItems(lessons), isDayChanged)
                 }
             }
         }
@@ -250,9 +251,9 @@ class TimetablePresenter @Inject constructor(
                 .takeIf { showAdditionalLessonsInPlan != NONE }.orEmpty()
 
         val filteredItems = allItems.filter {
-                if (prefRepository.showWholeClassPlan == TimetableMode.ONLY_CURRENT_GROUP) {
-                    it.isStudentPlan
-                } else true
+            if (prefRepository.showWholeClassPlan == TimetableMode.ONLY_CURRENT_GROUP) {
+                it.isStudentPlan
+            } else true
         }.sortedWith(
             (compareBy<Item> { it is Item.Additional }
                 .takeIf { showAdditionalLessonsInPlan == BELOW } ?: EmptyComparator())
@@ -288,13 +289,15 @@ class TimetablePresenter @Inject constructor(
                             lesson = it.lesson,
                             showGroupsInPlan = prefRepository.showGroupsInPlan,
                             timeLeft = filteredItems.getTimeLeftForLesson(it.lesson, i),
-                            onClick = ::onTimetableItemSelected
+                            onClick = ::onTimetableItemSelected,
+                            isLessonNumberVisible = !isEduOne
                         )
                         add(normalLesson)
                     } else {
                         val smallLesson = TimetableItem.Small(
                             lesson = it.lesson,
-                            onClick = ::onTimetableItemSelected
+                            onClick = ::onTimetableItemSelected,
+                            isLessonNumberVisible = !isEduOne
                         )
                         add(smallLesson)
                     }

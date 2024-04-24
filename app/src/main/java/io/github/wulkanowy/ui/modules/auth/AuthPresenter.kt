@@ -5,6 +5,7 @@ import io.github.wulkanowy.data.repositories.StudentRepository
 import io.github.wulkanowy.ui.base.BasePresenter
 import io.github.wulkanowy.ui.base.ErrorHandler
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 class AuthPresenter @Inject constructor(
@@ -26,8 +27,12 @@ class AuthPresenter @Inject constructor(
 
     private fun loadName() {
         presenterScope.launch {
-            runCatching { studentRepository.getCurrentStudent(false) }
-                .onSuccess { view?.showDescriptionWithName(it.studentName) }
+            runCatching {
+                studentRepository.getCurrentStudent(false)
+                    .studentName
+                    .replace(" ", "\u00A0")
+            }
+                .onSuccess { view?.showDescriptionWithName(it) }
                 .onFailure { errorHandler.dispatch(it) }
         }
     }
@@ -57,8 +62,9 @@ class AuthPresenter @Inject constructor(
                 val semester = semesterRepository.getCurrentSemester(student)
 
                 val isSuccess = studentRepository.authorizePermission(student, semester, pesel)
+                Timber.d("Auth succeed: $isSuccess")
                 if (isSuccess) {
-                    studentRepository.refreshStudentName(student, semester)
+                    studentRepository.refreshStudentAfterAuthorize(student, semester)
                 }
                 isSuccess
             }
@@ -68,6 +74,7 @@ class AuthPresenter @Inject constructor(
                     view?.showContent(true)
                 }
                 .onSuccess {
+                    Timber.d("Auth fully succeed: $it")
                     if (it) {
                         view?.showSuccess(true)
                         view?.showContent(false)

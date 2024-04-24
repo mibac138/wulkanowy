@@ -7,16 +7,19 @@ import io.github.wulkanowy.data.db.dao.SemesterDao
 import io.github.wulkanowy.data.db.dao.StudentDao
 import io.github.wulkanowy.data.db.entities.Semester
 import io.github.wulkanowy.data.db.entities.Student
+import io.github.wulkanowy.data.db.entities.StudentIsAuthorized
 import io.github.wulkanowy.data.db.entities.StudentName
 import io.github.wulkanowy.data.db.entities.StudentNickAndAvatar
 import io.github.wulkanowy.data.db.entities.StudentWithSemesters
 import io.github.wulkanowy.data.exceptions.NoCurrentStudentException
+import io.github.wulkanowy.data.mappers.mapToEntities
 import io.github.wulkanowy.data.mappers.mapToPojo
 import io.github.wulkanowy.data.pojos.RegisterUser
 import io.github.wulkanowy.sdk.Sdk
 import io.github.wulkanowy.utils.DispatchersProvider
 import io.github.wulkanowy.utils.security.Scrambler
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,6 +42,7 @@ class StudentRepository @Inject constructor(
     ): RegisterUser = wulkanowySdkFactory.create()
         .getStudentsFromHebe(token, pin, symbol, "")
         .mapToPojo(null)
+        .also { it.logErrors() }
 
     suspend fun getUserSubjectsFromScrapper(
         email: String,
@@ -49,6 +53,7 @@ class StudentRepository @Inject constructor(
     ): RegisterUser = wulkanowySdkFactory.create()
         .getUserSubjectsFromScrapper(email, password, scrapperBaseUrl, domainSuffix, symbol)
         .mapToPojo(password)
+        .also { it.logErrors() }
 
     suspend fun getStudentsHybrid(
         email: String,
@@ -58,6 +63,7 @@ class StudentRepository @Inject constructor(
     ): RegisterUser = wulkanowySdkFactory.create()
         .getStudentsHybrid(email, password, scrapperBaseUrl, "", symbol)
         .mapToPojo(password)
+        .also { it.logErrors() }
 
     suspend fun getSavedStudents(decryptPass: Boolean = true): List<StudentWithSemesters> {
         return studentDb.loadStudentsWithSemesters().map { (student, semesters) ->
@@ -97,6 +103,46 @@ class StudentRepository @Inject constructor(
             }
         }
         return student
+    }
+
+    suspend fun updateCurrentStudentAuthStatus() {
+        Timber.i("Check isAuthorized: started")
+        val student = getCurrentStudent()
+        if (student.isAuthorized) {
+            Timber.i("Check isAuthorized: already authorized")
+            return
+        }
+
+        val initializedSdk = wulkanowySdkFactory.create(student)
+        val newCurrentStudent = runCatching { initializedSdk.getCurrentStudent() }
+            .onFailure { Timber.e(it, "Check isAuthorized: error occurred") }
+            .getOrNull()
+
+        if (newCurrentStudent == null) {
+            Timber.d("Check isAuthorized: current user is null")
+            return
+        }
+
+        val currentStudentSemesters = semesterDb.loadAll(student.studentId, student.classId)
+        if (currentStudentSemesters.isEmpty()) {
+            Timber.d("Check isAuthorized: apply empty semesters workaround")
+            semesterDb.insertSemesters(
+                items = newCurrentStudent.semesters.mapToEntities(student.studentId),
+            )
+        }
+
+        if (!newCurrentStudent.isAuthorized) {
+            Timber.i("Check isAuthorized: authorization required")
+            throw NoAuthorizationException()
+        }
+
+        val studentIsAuthorized = StudentIsAuthorized(
+            id = student.id,
+            isAuthorized = true
+        )
+
+        Timber.i("Check isAuthorized: already authorized, update local status")
+        studentDb.update(studentIsAuthorized)
     }
 
     suspend fun getCurrentStudent(decryptPass: Boolean = true): Student {
@@ -151,15 +197,21 @@ class StudentRepository @Inject constructor(
         wulkanowySdkFactory.create(student, semester)
             .authorizePermission(pesel)
 
-    suspend fun refreshStudentName(student: Student, semester: Semester) {
-        val newCurrentApiStudent = wulkanowySdkFactory.create(student, semester)
-            .getCurrentStudent() ?: return
+    suspend fun refreshStudentAfterAuthorize(student: Student, semester: Semester) {
+        val wulkanowySdk = wulkanowySdkFactory.create(student, semester)
+            val newCurrentApiStudent = runCatching { wulkanowySdk.getCurrentStudent() }
+            .onFailure { Timber.e(it, "Can't find student with id ${student.studentId}") }
+            .getOrNull() ?: return
 
         val studentName = StudentName(
             studentName = "${newCurrentApiStudent.studentName} ${newCurrentApiStudent.studentSurname}"
         ).apply { id = student.id }
 
         studentDb.update(studentName)
+        semesterDb.removeOldAndSaveNew(
+            oldItems = semesterDb.loadAll(student.studentId, semester.classId),
+            newItems = newCurrentApiStudent.semesters.mapToEntities(newCurrentApiStudent.studentId)
+        )
     }
 
     suspend fun deleteStudentsAssociatedWithAccount(student: Student) {
@@ -172,4 +224,18 @@ class StudentRepository @Inject constructor(
             appDatabase.clearAllTables()
         }
     }
+
+    private fun RegisterUser.logErrors() {
+        val symbolsErrors = symbols.filter { it.error != null }
+            .map { it.error }
+        val unitsErrors = symbols.flatMap { it.schools }
+            .filter { it.error != null }
+            .map { it.error }
+
+        (symbolsErrors + unitsErrors).forEach { error ->
+            Timber.e(error, "Error occurred while fetching students")
+        }
+    }
 }
+
+class NoAuthorizationException : Exception()

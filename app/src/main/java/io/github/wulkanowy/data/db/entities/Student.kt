@@ -49,6 +49,7 @@ data class Student(
     @ColumnInfo(name = "student_id")
     val studentId: Int,
 
+    @Deprecated("not available in VULCAN anymore")
     @ColumnInfo(name = "user_login_id")
     val userLoginId: Int,
 
@@ -78,6 +79,13 @@ data class Student(
 
     @ColumnInfo(name = "registration_date")
     val registrationDate: Instant,
+
+    @ColumnInfo(name = "is_authorized", defaultValue = "0")
+    val isAuthorized: Boolean,
+
+    @ColumnInfo(name = "is_edu_one", defaultValue = "NULL")
+    val isEduOne: Boolean?,
+
 ) : Serializable {
 
     @PrimaryKey(autoGenerate = true)
@@ -88,3 +96,22 @@ data class Student(
     @ColumnInfo(name = "avatar_color")
     var avatarColor = 0L
 }
+
+@Entity
+data class StudentIsAuthorized(
+
+    @PrimaryKey
+    var id: Long,
+
+    @ColumnInfo(name = "is_authorized", defaultValue = "NULL")
+    val isAuthorized: Boolean?,
+) : Serializable
+
+@Entity
+data class StudentIsEduOne(
+    @PrimaryKey
+    var id: Long,
+
+    @ColumnInfo(name = "is_edu_one", defaultValue = "NULL")
+    val isEduOne: Boolean?,
+) : Serializable
