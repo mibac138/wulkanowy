@@ -1,11 +1,6 @@
-Wersja 2.5.1
+Wersja 2.5.7
 
-— dodaliśmy wyświetlanie ogłoszeń
-— dodaliśmy opcję przywracania wiadomości z kosza
-— dodaliśmy opcję wyciszania nadawców wiadomości
-— naprawiliśmy opcjonalne liczenie średniej arytmetycznej, kiedy brak ocen z wagą w drugim semestrze
-— usprawniliśmy ładowanie frekwencji i planu lekcji
-— naprawiliśmy usprawiedliwianie nieobecności i autoryzację u użytkowników eduOne
-— zmieniliśmy komunikat o zmienionym haśle
+— naprawiliśmy logowanie (pusta lista z wyborem uczniów), które zepsuło się po zmianach po stronie VULCANa
+— dodaliśmy wyświetlanie osobno średniej rocznej, bo VULCAN rozdzielił i zrobił się bałagan
 
 Pełna lista zmian: https://github.com/wulkanowy/wulkanowy/releases
