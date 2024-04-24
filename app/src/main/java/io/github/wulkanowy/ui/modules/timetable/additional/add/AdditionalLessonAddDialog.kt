@@ -27,8 +27,9 @@ class AdditionalLessonAddDialog : BaseDialogFragment<DialogAdditionalAddBinding>
     lateinit var presenter: AdditionalLessonAddPresenter
 
     companion object {
+        const val ARGUMENT_KEY = "additional_lesson_default_date"
         fun newInstance(defaultDate: LocalDate) = AdditionalLessonAddDialog().apply {
-            arguments = bundleOf("DATE" to defaultDate.toEpochDay())
+            arguments = bundleOf(ARGUMENT_KEY to defaultDate.toEpochDay())
         }
     }
 
@@ -42,7 +43,7 @@ class AdditionalLessonAddDialog : BaseDialogFragment<DialogAdditionalAddBinding>
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        arguments?.getLong("DATE")?.let(LocalDate::ofEpochDay)?.let {
+        arguments?.getLong(ARGUMENT_KEY)?.let(LocalDate::ofEpochDay)?.let {
             presenter.onDateSelected(it)
         }
         presenter.onAttachView(this)
