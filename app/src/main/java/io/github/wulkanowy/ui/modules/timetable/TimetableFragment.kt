@@ -51,7 +51,7 @@ class TimetableFragment : BaseFragment<FragmentTimetableBinding>(R.layout.fragme
 
     override val titleStringId get() = R.string.timetable_title
 
-    override val isViewEmpty get() = timetableAdapter.isEmpty()
+    override val isViewEmpty get() = timetableAdapter.itemCount == 0
 
     override val currentStackSize get() = (activity as? MainActivity)?.currentStackSize
 

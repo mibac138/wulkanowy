@@ -33,8 +33,7 @@ import java.util.*
 import javax.inject.Inject
 import kotlin.concurrent.timer
 
-class DashboardAdapter @Inject constructor() :
-    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class DashboardAdapter @Inject constructor() : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var lessonsTimer: Timer? = null
 

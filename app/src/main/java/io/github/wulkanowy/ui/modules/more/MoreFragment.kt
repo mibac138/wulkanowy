@@ -55,7 +55,10 @@ class MoreFragment : BaseFragment<FragmentMoreBinding>(R.layout.fragment_more), 
     }
 
     override fun updateData(data: List<MoreItem>) {
-        moreAdapter.submitList(data)
+        with(moreAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun popView(depth: Int) {

@@ -3,46 +3,31 @@ package io.github.wulkanowy.utils
 import android.annotation.SuppressLint
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import java.util.Collections
 
 /**
  * Custom alternative to androidx.recyclerview.widget.ListAdapter. ListAdapter is asynchronous which
  * caused data race problems in views when a Resource.Error arrived shortly after
  * Resource.Intermediate/Success - occasionally in that case the user could see both the Resource's
- * data and a error message one on top of the other. This is synchronized by design to avoid that
+ * data and an error message one on top of the other. This is synchronized by design to avoid that
  * problem, however it retains the quality of life improvements of the original.
  */
-abstract class SyncListAdapter<T : Any, VH : RecyclerView.ViewHolder>
-private constructor(private val updateStrategy: SyncListAdapter<T, VH>.(List<T>) -> Unit) :
-    RecyclerView.Adapter<VH>() {
+abstract class SyncListAdapter<T : Any, VH : RecyclerView.ViewHolder> private constructor(
+    private val updateStrategy: SyncListAdapter<T, VH>.(List<T>) -> Unit
+) : RecyclerView.Adapter<VH>() {
 
-    /**
-     * Support more efficient operation with a ItemCallback to diff items
-     */
     constructor(differ: DiffUtil.ItemCallback<T>) : this({ newItems ->
-        val diffResult = DiffUtil.calculateDiff(differ.toCallback(items, newItems))
+        val diffResult = DiffUtil.calculateDiff(toCallback(differ, items, newItems))
         items = newItems
         diffResult.dispatchUpdatesTo(this)
-    })
-
-    /**
-     * Support a bare-bones mode that always invalidates all items
-     */
-    @SuppressLint("NotifyDataSetChanged")
-    constructor() : this({ newItems ->
-        items = newItems
-        notifyDataSetChanged()
     })
 
     var items = emptyList<T>()
         private set
 
-    fun isEmpty(): Boolean = items.isEmpty()
+    final override fun getItemCount() = items.size
 
-    fun submitList(data: List<T>) {
-        val old = items
-        updateStrategy(data.toList())
-        onSubmit(old, data)
+    fun getItem(position: Int): T {
+        return items[position]
     }
 
     /**
@@ -50,46 +35,32 @@ private constructor(private val updateStrategy: SyncListAdapter<T, VH>.(List<T>)
      * This prevents a flashing effect on some views. Should be used in favor of submitList when
      * all data is changed (e.g. the selected day changes in timetable causing all lessons to change).
      */
+    @SuppressLint("NotifyDataSetChanged")
     fun recreate(data: List<T>) {
-        val itemAnimator = recyclerView?.let {
-            val anim = it.itemAnimator
-            it.itemAnimator = null
-            anim
-        }
-        submitList(data)
-        if (itemAnimator != null) {
-            recyclerView?.let {
-                it.itemAnimator = itemAnimator
-            }
-        }
+        items = data
+        notifyDataSetChanged()
     }
 
-    fun moveItem(from: Int, to: Int) {
-        Collections.swap(items, from, to)
-        notifyItemMoved(from, to)
+    fun submitList(data: List<T>) {
+        updateStrategy(data.toList())
     }
 
-    fun removeItemAt(position: Int) {
-        items = items.toMutableList().apply { removeAt(position) }
-        notifyItemRemoved(position)
-    }
+    private fun <T : Any> toCallback(
+        itemCallback: DiffUtil.ItemCallback<T>,
+        old: List<T>,
+        new: List<T>,
+    ) = object : DiffUtil.Callback() {
+        override fun getOldListSize() = old.size
 
-    fun addItemAt(position: Int, item: T) {
-        items = items.toMutableList().apply { add(position, item) }
-        notifyItemInserted(position)
-    }
+        override fun getNewListSize() = new.size
 
-    protected open fun onSubmit(old: List<T>, new: List<T>) {}
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+            itemCallback.areItemsTheSame(old[oldItemPosition], new[newItemPosition])
 
-    final override fun getItemCount() = items.size
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+            itemCallback.areContentsTheSame(old[oldItemPosition], new[newItemPosition])
 
-
-    private var recyclerView: RecyclerView? = null
-    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-        this.recyclerView = recyclerView
-    }
-
-    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        this.recyclerView = null
+        override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int) =
+            itemCallback.getChangePayload(old[oldItemPosition], new[newItemPosition])
     }
 }

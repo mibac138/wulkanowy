@@ -3,7 +3,6 @@ package io.github.wulkanowy.ui.modules.attendance
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.os.Bundle
 import android.view.*
-import android.view.LayoutInflater
 import android.view.View.*
 import androidx.appcompat.view.ActionMode
 import androidx.core.view.isVisible
