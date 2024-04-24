@@ -7,13 +7,16 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.pojos.AttendanceData
 import io.github.wulkanowy.databinding.ItemAttendanceCalculatorHeaderBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class AttendanceCalculatorAdapter @Inject constructor() :
-    SyncListAdapter<AttendanceData, AttendanceCalculatorAdapter.ViewHolder>() {
+    RecyclerView.Adapter<AttendanceCalculatorAdapter.ViewHolder>() {
+
+    var items = emptyList<AttendanceData>()
+
+    override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
         ItemAttendanceCalculatorHeaderBinding.inflate(

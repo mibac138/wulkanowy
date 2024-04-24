@@ -8,11 +8,13 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.Teacher
 import io.github.wulkanowy.databinding.ItemTeacherBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 
-class TeacherAdapter @Inject constructor() :
-    SyncListAdapter<Teacher, TeacherAdapter.ItemViewHolder>() {
+class TeacherAdapter @Inject constructor() : RecyclerView.Adapter<TeacherAdapter.ItemViewHolder>() {
+
+    var items = emptyList<Teacher>()
+
+    override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ItemViewHolder(
         ItemTeacherBinding.inflate(LayoutInflater.from(parent.context), parent, false)

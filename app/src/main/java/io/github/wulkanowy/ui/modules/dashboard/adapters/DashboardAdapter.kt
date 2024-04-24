@@ -32,7 +32,6 @@ import io.github.wulkanowy.databinding.ItemDashboardHorizontalGroupBinding
 import io.github.wulkanowy.databinding.ItemDashboardLessonsBinding
 import io.github.wulkanowy.ui.modules.dashboard.DashboardItem
 import io.github.wulkanowy.ui.modules.dashboard.viewholders.AdminMessageViewHolder
-import io.github.wulkanowy.utils.SyncListAdapter
 import io.github.wulkanowy.utils.createNameInitialsDrawable
 import io.github.wulkanowy.utils.dpToPx
 import io.github.wulkanowy.utils.getThemeAttrColor
@@ -49,7 +48,7 @@ import javax.inject.Inject
 import kotlin.concurrent.timer
 
 class DashboardAdapter @Inject constructor() :
-    SyncListAdapter<DashboardItem, RecyclerView.ViewHolder>(Differ) {
+    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var lessonsTimer: Timer? = null
 
@@ -77,6 +76,22 @@ class DashboardAdapter @Inject constructor() :
 
     var onAdminMessageDismissClickListener: (AdminMessage) -> Unit = {}
 
+    val items = mutableListOf<DashboardItem>()
+
+    fun submitList(newItems: List<DashboardItem>) {
+        val diffResult =
+            DiffUtil.calculateDiff(DiffCallback(newItems, items.toMutableList()))
+
+        with(items) {
+            clear()
+            addAll(newItems)
+        }
+
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    override fun getItemCount() = items.size
+
     override fun getItemViewType(position: Int) = items[position].type.ordinal
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -86,35 +101,45 @@ class DashboardAdapter @Inject constructor() :
             DashboardItem.Type.ACCOUNT.ordinal -> AccountViewHolder(
                 ItemDashboardAccountBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.HORIZONTAL_GROUP.ordinal -> HorizontalGroupViewHolder(
                 ItemDashboardHorizontalGroupBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.GRADES.ordinal -> GradesViewHolder(
                 ItemDashboardGradesBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.LESSONS.ordinal -> LessonsViewHolder(
                 ItemDashboardLessonsBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.HOMEWORK.ordinal -> HomeworkViewHolder(
                 ItemDashboardHomeworkBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.ANNOUNCEMENTS.ordinal -> AnnouncementsViewHolder(
                 ItemDashboardAnnouncementsBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.EXAMS.ordinal -> ExamsViewHolder(
                 ItemDashboardExamsBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.CONFERENCES.ordinal -> ConferencesViewHolder(
                 ItemDashboardConferencesBinding.inflate(inflater, parent, false)
             )
+
             DashboardItem.Type.ADMIN_MESSAGE.ordinal -> AdminMessageViewHolder(
                 ItemDashboardAdminMessageBinding.inflate(inflater, parent, false),
                 onAdminMessageDismissClickListener = onAdminMessageDismissClickListener,
                 onAdminMessageClickListener = onAdminMessageClickListener,
             )
+
             DashboardItem.Type.ADS.ordinal -> AdsViewHolder(
                 ItemDashboardAdsBinding.inflate(inflater, parent, false)
             )
+
             else -> throw IllegalArgumentException()
         }
     }
@@ -240,12 +265,15 @@ class DashboardAdapter @Inject constructor() :
             attendancePercentage == null || attendancePercentage == .0 -> {
                 root.context.getThemeAttrColor(R.attr.colorOnSurface)
             }
+
             attendancePercentage <= ATTENDANCE_SECOND_WARNING_THRESHOLD -> {
                 root.context.getThemeAttrColor(R.attr.colorPrimary)
             }
+
             attendancePercentage <= ATTENDANCE_FIRST_WARNING_THRESHOLD -> {
                 root.context.getThemeAttrColor(R.attr.colorTimetableChange)
             }
+
             else -> root.context.getThemeAttrColor(R.attr.colorOnSurface)
         }
         val attendanceString = if (attendancePercentage == null || attendancePercentage == .0) {
@@ -281,7 +309,7 @@ class DashboardAdapter @Inject constructor() :
         val error = item.error
         val isLoading = item.isLoading
         val dashboardGradesAdapter = gradesViewHolder.adapter.apply {
-            submitList(subjectWithGrades.toList())
+            this.items = subjectWithGrades.toList()
             this.gradeColorTheme = gradeTheme ?: GradeColorTheme.VULCAN
         }
 
@@ -336,24 +364,28 @@ class DashboardAdapter @Inject constructor() :
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = false
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
+
                 tomorrowTimetable.isNotEmpty() -> {
                     dateToNavigate = tomorrowDate
                     updateLessonView(item, tomorrowTimetable, binding)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = true
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
+
                 currentDayHeader != null && currentDayHeader.content.isNotBlank() -> {
                     dateToNavigate = currentDate
                     updateLessonView(item, emptyList(), binding, currentDayHeader)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = false
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
+
                 tomorrowDayHeader != null && tomorrowDayHeader.content.isNotBlank() -> {
                     dateToNavigate = tomorrowDate
                     updateLessonView(item, emptyList(), binding, tomorrowDayHeader)
                     binding.dashboardLessonsItemTitleTomorrow.isVisible = true
                     binding.dashboardLessonsItemTitleTodayAndTomorrow.isVisible = false
                 }
+
                 else -> {
                     dateToNavigate = currentDate
                     updateLessonView(item, emptyList(), binding)
@@ -461,6 +493,7 @@ class DashboardAdapter @Inject constructor() :
                     firstTitleText =
                         context.getString(R.string.dashboard_timetable_first_lesson_title_moment)
                 }
+
                 minutesToStartLesson < 240 -> {
                     firstTitleAndValueTextColor =
                         context.getThemeAttrColor(R.attr.colorOnSurface)
@@ -468,6 +501,7 @@ class DashboardAdapter @Inject constructor() :
                     firstTitleText =
                         context.getString(R.string.dashboard_timetable_first_lesson_title_soon)
                 }
+
                 else -> {
                     firstTitleAndValueTextColor =
                         context.getThemeAttrColor(R.attr.colorOnSurface)
@@ -595,7 +629,7 @@ class DashboardAdapter @Inject constructor() :
         val isLoading = item.isLoading
         val context = homeworkViewHolder.binding.root.context
         val homeworkAdapter = homeworkViewHolder.adapter.apply {
-            submitList(homeworkList.take(MAX_VISIBLE_LIST_ITEMS))
+            this.items = homeworkList.take(MAX_VISIBLE_LIST_ITEMS)
         }
 
         with(homeworkViewHolder.binding) {
@@ -633,7 +667,7 @@ class DashboardAdapter @Inject constructor() :
         val isLoading = item.isLoading
         val context = announcementsViewHolder.binding.root.context
         val schoolAnnouncementsAdapter = announcementsViewHolder.adapter.apply {
-            submitList(schoolAnnouncementList.take(MAX_VISIBLE_LIST_ITEMS))
+            this.items = schoolAnnouncementList.take(MAX_VISIBLE_LIST_ITEMS)
         }
 
         with(announcementsViewHolder.binding) {
@@ -670,7 +704,7 @@ class DashboardAdapter @Inject constructor() :
         val isLoading = item.isLoading
         val context = examsViewHolder.binding.root.context
         val examAdapter = examsViewHolder.adapter.apply {
-            submitList(exams.take(MAX_VISIBLE_LIST_ITEMS))
+            this.items = exams.take(MAX_VISIBLE_LIST_ITEMS)
         }
 
         with(examsViewHolder.binding) {
@@ -706,7 +740,7 @@ class DashboardAdapter @Inject constructor() :
         val isLoading = item.isLoading
         val context = conferencesViewHolder.binding.root.context
         val conferenceAdapter = conferencesViewHolder.adapter.apply {
-            submitList(conferences.take(MAX_VISIBLE_LIST_ITEMS))
+            this.items = conferences.take(MAX_VISIBLE_LIST_ITEMS)
         }
 
         with(conferencesViewHolder.binding) {
@@ -790,12 +824,20 @@ class DashboardAdapter @Inject constructor() :
     class AdsViewHolder(val binding: ItemDashboardAdsBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    private object Differ : DiffUtil.ItemCallback<DashboardItem>() {
-        override fun areItemsTheSame(oldItem: DashboardItem, newItem: DashboardItem) =
-            oldItem.type == newItem.type
+    private class DiffCallback(
+        private val newList: List<DashboardItem>,
+        private val oldList: List<DashboardItem>
+    ) : DiffUtil.Callback() {
 
-        override fun areContentsTheSame(oldItem: DashboardItem, newItem: DashboardItem) =
-            oldItem == newItem
+        override fun getNewListSize() = newList.size
+
+        override fun getOldListSize() = oldList.size
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+            newList[newItemPosition] == oldList[oldItemPosition]
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+            newList[newItemPosition].type == oldList[oldItemPosition].type
     }
 
     private companion object {

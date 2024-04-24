@@ -42,7 +42,7 @@ class CompletedLessonsFragment :
 
     override val titleStringId get() = R.string.completed_lessons_title
 
-    override val isViewEmpty get() = completedLessonsAdapter.isEmpty()
+    override val isViewEmpty get() = completedLessonsAdapter.items.isEmpty()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -78,11 +78,17 @@ class CompletedLessonsFragment :
     }
 
     override fun updateData(data: List<CompletedLesson>) {
-        completedLessonsAdapter.submitList(data)
+        with(completedLessonsAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun clearData() {
-        completedLessonsAdapter.submitList(emptyList())
+        with(completedLessonsAdapter) {
+            items = emptyList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun updateNavigationDay(date: String) {

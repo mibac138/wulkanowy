@@ -68,7 +68,10 @@ class AccountQuickDialog : BaseDialogFragment<DialogAccountQuickBinding>(), Acco
     }
 
     override fun updateData(data: List<AccountItem<*>>) {
-        accountAdapter.submitList(data)
+        with(accountAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun popView() {

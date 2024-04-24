@@ -40,7 +40,7 @@ class AdditionalLessonsFragment :
 
     override val titleStringId get() = R.string.additional_lessons_title
 
-    override val isViewEmpty get() = additionalLessonsAdapter.isEmpty()
+    override val isViewEmpty get() = additionalLessonsAdapter.items.isEmpty()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -78,11 +78,17 @@ class AdditionalLessonsFragment :
     }
 
     override fun updateData(data: List<TimetableAdditional>) {
-        additionalLessonsAdapter.submitList(data)
+        with(additionalLessonsAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun clearData() {
-        additionalLessonsAdapter.submitList(emptyList())
+        with(additionalLessonsAdapter) {
+            items = emptyList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun showSuccessMessage() {

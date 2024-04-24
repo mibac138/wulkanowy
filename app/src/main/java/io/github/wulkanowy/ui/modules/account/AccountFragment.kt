@@ -63,7 +63,10 @@ class AccountFragment : BaseFragment<FragmentAccountBinding>(R.layout.fragment_a
     }
 
     override fun updateData(data: List<AccountItem<*>>) {
-        accountAdapter.submitList(data)
+        with(accountAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun openLoginView() {

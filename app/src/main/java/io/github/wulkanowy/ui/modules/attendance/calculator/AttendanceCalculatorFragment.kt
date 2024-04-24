@@ -31,7 +31,7 @@ class AttendanceCalculatorFragment :
         fun newInstance() = AttendanceCalculatorFragment()
     }
 
-    override val isViewEmpty get() = attendanceCalculatorAdapter.isEmpty()
+    override val isViewEmpty get() = attendanceCalculatorAdapter.items.isEmpty()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -57,11 +57,17 @@ class AttendanceCalculatorFragment :
     }
 
     override fun updateData(data: List<AttendanceData>) {
-        attendanceCalculatorAdapter.submitList(data)
+        with(attendanceCalculatorAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun clearView() {
-        attendanceCalculatorAdapter.submitList(emptyList())
+        with(attendanceCalculatorAdapter) {
+            items = emptyList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun showEmpty(show: Boolean) {

@@ -2,6 +2,7 @@ package io.github.wulkanowy.ui.modules.settings.appearance.menuorder
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import java.util.Collections
 
 class MenuItemMoveCallback(
     private val menuOrderAdapter: MenuOrderAdapter,
@@ -26,7 +27,11 @@ class MenuItemMoveCallback(
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        menuOrderAdapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+        val list = menuOrderAdapter.items.toMutableList()
+
+        Collections.swap(list, viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+
+        menuOrderAdapter.submitList(list)
         return true
     }
 

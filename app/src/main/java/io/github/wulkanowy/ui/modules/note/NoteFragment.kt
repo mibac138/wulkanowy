@@ -34,7 +34,7 @@ class NoteFragment : BaseFragment<FragmentNoteBinding>(R.layout.fragment_note), 
         get() = R.string.note_title
 
     override val isViewEmpty: Boolean
-        get() = noteAdapter.isEmpty()
+        get() = noteAdapter.items.isEmpty()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -64,17 +64,24 @@ class NoteFragment : BaseFragment<FragmentNoteBinding>(R.layout.fragment_note), 
     }
 
     override fun updateData(data: List<Note>) {
-        noteAdapter.submitList(data)
+        with(noteAdapter) {
+            items = data.toMutableList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun updateItem(item: Note, position: Int) {
-        val items = noteAdapter.items.toMutableList()
-        items[position] = item
-        noteAdapter.submitList(items)
+        with(noteAdapter) {
+            items[position] = item
+            notifyItemChanged(position)
+        }
     }
 
     override fun clearData() {
-        noteAdapter.submitList(emptyList())
+        with(noteAdapter) {
+            items = mutableListOf()
+            notifyDataSetChanged()
+        }
     }
 
     override fun showEmpty(show: Boolean) {

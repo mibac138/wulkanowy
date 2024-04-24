@@ -36,7 +36,7 @@ class ExamFragment : BaseFragment<FragmentExamBinding>(R.layout.fragment_exam), 
 
     override val titleStringId get() = R.string.exam_title
 
-    override val isViewEmpty get() = examAdapter.isEmpty()
+    override val isViewEmpty get() = examAdapter.items.isEmpty()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,7 +73,10 @@ class ExamFragment : BaseFragment<FragmentExamBinding>(R.layout.fragment_exam), 
     }
 
     override fun updateData(data: List<ExamItem<*>>) {
-        examAdapter.submitList(data)
+        with(examAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun updateNavigationWeek(date: String) {
@@ -81,7 +84,10 @@ class ExamFragment : BaseFragment<FragmentExamBinding>(R.layout.fragment_exam), 
     }
 
     override fun clearData() {
-        examAdapter.submitList(emptyList())
+        with(examAdapter) {
+            items = emptyList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun showEmpty(show: Boolean) {

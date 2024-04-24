@@ -45,7 +45,10 @@ class DebugFragment : BaseFragment<FragmentDebugBinding>(R.layout.fragment_debug
     }
 
     override fun setItems(itemList: List<DebugItem>) {
-        debugAdapter.submitList(itemList)
+        with(debugAdapter) {
+            items = itemList
+            notifyDataSetChanged()
+        }
     }
 
     override fun openLogViewer() {

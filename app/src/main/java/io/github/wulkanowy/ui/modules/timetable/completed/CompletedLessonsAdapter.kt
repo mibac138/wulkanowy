@@ -7,14 +7,17 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.data.db.entities.CompletedLesson
 import io.github.wulkanowy.databinding.ItemCompletedLessonBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 import io.github.wulkanowy.utils.getThemeAttrColor
 import javax.inject.Inject
 
 class CompletedLessonsAdapter @Inject constructor() :
-    SyncListAdapter<CompletedLesson, CompletedLessonsAdapter.ItemViewHolder>() {
+    RecyclerView.Adapter<CompletedLessonsAdapter.ItemViewHolder>() {
+
+    var items = emptyList<CompletedLesson>()
 
     var onClickListener: (CompletedLesson) -> Unit = {}
+
+    override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ItemViewHolder(
         ItemCompletedLessonBinding.inflate(LayoutInflater.from(parent.context), parent, false)

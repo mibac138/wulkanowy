@@ -4,10 +4,12 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.databinding.ItemDebugNotificationsBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 
-class NotificationDebugAdapter :
-    SyncListAdapter<NotificationDebugItem, NotificationDebugAdapter.ItemViewHolder>() {
+class NotificationDebugAdapter : RecyclerView.Adapter<NotificationDebugAdapter.ItemViewHolder>() {
+
+    var items = emptyList<NotificationDebugItem>()
+
+    override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ItemViewHolder(
         ItemDebugNotificationsBinding.inflate(LayoutInflater.from(parent.context), parent, false)

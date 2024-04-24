@@ -56,7 +56,8 @@ class LuckyNumberWidgetConfigureActivity :
     override fun updateData(data: List<StudentWithSemesters>, selectedStudentId: Long) {
         with(configureAdapter) {
             selectedId = selectedStudentId
-            submitList(data)
+            items = data
+            notifyDataSetChanged()
         }
     }
 

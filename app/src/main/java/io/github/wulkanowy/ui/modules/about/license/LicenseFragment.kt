@@ -53,7 +53,10 @@ class LicenseFragment : BaseFragment<FragmentLicenseBinding>(R.layout.fragment_l
     }
 
     override fun updateData(data: List<Library>) {
-        licenseAdapter.submitList(data)
+        with(licenseAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun openLicense(licenseHtml: String) {

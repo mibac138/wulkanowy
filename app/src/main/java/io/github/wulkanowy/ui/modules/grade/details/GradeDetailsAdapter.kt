@@ -19,7 +19,6 @@ import io.github.wulkanowy.databinding.ItemGradeDetailsBinding
 import io.github.wulkanowy.ui.base.BaseExpandableAdapter
 import io.github.wulkanowy.utils.getBackgroundColor
 import io.github.wulkanowy.utils.getCompatColor
-import io.github.wulkanowy.utils.toCallback
 import io.github.wulkanowy.utils.toFormattedString
 import timber.log.Timber
 import java.util.BitSet
@@ -80,7 +79,7 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
 
     @Synchronized
     private fun refreshList(newItems: MutableList<GradeDetailsItem>) {
-        val diffCallback = GradeDetailsDiffer.toCallback(items, newItems)
+        val diffCallback = GradeDetailsDiffUtil(items, newItems)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         items = newItems
         diffResult.dispatchUpdatesTo(this)
@@ -254,15 +253,21 @@ class GradeDetailsAdapter @Inject constructor() : BaseExpandableAdapter<Recycler
     private class ItemViewHolder(val binding: ItemGradeDetailsBinding) :
         RecyclerView.ViewHolder(binding.root)
 
-    private object GradeDetailsDiffer : DiffUtil.ItemCallback<GradeDetailsItem>() {
-        override fun areItemsTheSame(
-            oldItem: GradeDetailsItem,
-            newItem: GradeDetailsItem
-        ) = oldItem == newItem
+    private class GradeDetailsDiffUtil(
+        private val old: List<GradeDetailsItem>,
+        private val new: List<GradeDetailsItem>
+    ) : DiffUtil.Callback() {
 
-        override fun areContentsTheSame(
-            oldItem: GradeDetailsItem,
-            newItem: GradeDetailsItem
-        ) = oldItem == newItem
+        override fun getOldListSize() = old.size
+
+        override fun getNewListSize() = new.size
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return old[oldItemPosition] == new[newItemPosition]
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return old[oldItemPosition] == new[newItemPosition]
+        }
     }
 }

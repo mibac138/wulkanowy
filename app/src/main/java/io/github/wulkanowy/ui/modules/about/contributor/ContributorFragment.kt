@@ -48,7 +48,10 @@ class ContributorFragment : BaseFragment<FragmentContributorBinding>(R.layout.fr
     }
 
     override fun updateData(data: List<Contributor>) {
-        creatorsAdapter.submitList(data)
+        with(creatorsAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun openUserGithubPage(username: String) {

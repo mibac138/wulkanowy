@@ -41,7 +41,10 @@ class NotificationDebugFragment :
     }
 
     override fun setItems(notificationDebugs: List<NotificationDebugItem>) {
-        notificationDebugAdapter.submitList(notificationDebugs)
+        with(notificationDebugAdapter) {
+            items = notificationDebugs
+            notifyDataSetChanged()
+        }
     }
 
     override fun onDestroyView() {

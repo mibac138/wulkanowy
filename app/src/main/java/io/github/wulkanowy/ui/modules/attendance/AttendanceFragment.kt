@@ -58,7 +58,7 @@ class AttendanceFragment : BaseFragment<FragmentAttendanceBinding>(R.layout.frag
 
     override val titleStringId get() = R.string.attendance_title
 
-    override val isViewEmpty get() = attendanceAdapter.isEmpty()
+    override val isViewEmpty get() = attendanceAdapter.items.isEmpty()
 
     override val currentStackSize get() = (activity as? MainActivity)?.currentStackSize
 
@@ -146,7 +146,10 @@ class AttendanceFragment : BaseFragment<FragmentAttendanceBinding>(R.layout.frag
     }
 
     override fun updateData(data: List<Attendance>) {
-        attendanceAdapter.submitList(data)
+        with(attendanceAdapter) {
+            items = data
+            notifyDataSetChanged()
+        }
     }
 
     override fun updateNavigationDay(date: String) {
@@ -158,7 +161,10 @@ class AttendanceFragment : BaseFragment<FragmentAttendanceBinding>(R.layout.frag
     }
 
     override fun clearData() {
-        attendanceAdapter.submitList(emptyList())
+        with(attendanceAdapter) {
+            items = emptyList()
+            notifyDataSetChanged()
+        }
     }
 
     override fun resetView() {

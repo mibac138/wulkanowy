@@ -65,7 +65,7 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
         }
 
     override val isViewEmpty
-        get() = dashboardAdapter.isEmpty()
+        get() = dashboardAdapter.itemCount == 0
 
     companion object {
 
@@ -180,7 +180,7 @@ class DashboardFragment : BaseFragment<FragmentDashboardBinding>(R.layout.fragme
     }
 
     override fun updateData(data: List<DashboardItem>) {
-        dashboardAdapter.submitList(data)
+        dashboardAdapter.submitList(data.toMutableList())
     }
 
     override fun showMessage(text: String) {

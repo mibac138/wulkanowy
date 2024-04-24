@@ -7,13 +7,16 @@ import coil.load
 import coil.transform.RoundedCornersTransformation
 import io.github.wulkanowy.data.pojos.Contributor
 import io.github.wulkanowy.databinding.ItemContributorBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 
 class ContributorAdapter @Inject constructor() :
-    SyncListAdapter<Contributor, ContributorAdapter.ItemViewHolder>() {
+    RecyclerView.Adapter<ContributorAdapter.ItemViewHolder>() {
+
+    var items = emptyList<Contributor>()
 
     var onClickListener: (Contributor) -> Unit = {}
+
+    override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ItemViewHolder(
         ItemContributorBinding.inflate(LayoutInflater.from(parent.context), parent, false)

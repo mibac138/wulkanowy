@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil.ItemCallback
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.github.wulkanowy.R
 import io.github.wulkanowy.databinding.ItemLoginStudentSelectEmptySymbolHeaderBinding
@@ -12,14 +13,13 @@ import io.github.wulkanowy.databinding.ItemLoginStudentSelectHeaderSchoolBinding
 import io.github.wulkanowy.databinding.ItemLoginStudentSelectHeaderSymbolBinding
 import io.github.wulkanowy.databinding.ItemLoginStudentSelectHelpBinding
 import io.github.wulkanowy.databinding.ItemLoginStudentSelectStudentBinding
-import io.github.wulkanowy.utils.SyncListAdapter
 import javax.inject.Inject
 
 @SuppressLint("SetTextI18n")
 class LoginStudentSelectAdapter @Inject constructor() :
-    SyncListAdapter<LoginStudentSelectItem, RecyclerView.ViewHolder>(Differ) {
+    ListAdapter<LoginStudentSelectItem, RecyclerView.ViewHolder>(Differ) {
 
-    override fun getItemViewType(position: Int): Int = items[position].type.ordinal
+    override fun getItemViewType(position: Int): Int = getItem(position).type.ordinal
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -48,11 +48,11 @@ class LoginStudentSelectAdapter @Inject constructor() :
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is EmptySymbolsHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.EmptySymbolsHeader)
-            is SymbolsHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.SymbolHeader)
-            is SchoolHeaderViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.SchoolHeader)
-            is StudentViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.Student)
-            is HelpViewHolder -> holder.bind(items[position] as LoginStudentSelectItem.Help)
+            is EmptySymbolsHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.EmptySymbolsHeader)
+            is SymbolsHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.SymbolHeader)
+            is SchoolHeaderViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.SchoolHeader)
+            is StudentViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.Student)
+            is HelpViewHolder -> holder.bind(getItem(position) as LoginStudentSelectItem.Help)
         }
     }
 

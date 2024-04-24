@@ -165,7 +165,7 @@ class MessageTabFragment : BaseFragment<FragmentMessageTabBinding>(R.layout.frag
     }
 
     override fun updateData(data: List<MessageTabDataItem>) {
-        messageTabAdapter.submitList(data)
+        messageTabAdapter.submitData(data)
     }
 
     override fun updateActionModeTitle(selectedMessagesSize: Int) {

@@ -68,7 +68,8 @@ class LogViewerFragment : BaseFragment<FragmentLogviewerBinding>(R.layout.fragme
     }
 
     override fun setLines(lines: List<String>) {
-        logAdapter.submitList(lines)
+        logAdapter.lines = lines
+        logAdapter.notifyDataSetChanged()
         binding.logViewerRecycler.scrollToPosition(lines.size - 1)
     }
 
