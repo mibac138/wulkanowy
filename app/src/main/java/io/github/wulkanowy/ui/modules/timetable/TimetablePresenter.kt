@@ -320,10 +320,19 @@ class TimetablePresenter @Inject constructor(
     }
 
     private fun List<Item>.getPreviousLesson(position: Int): Instant? {
-        return mapNotNull { (it as? Item.Lesson)?.lesson.takeIf { it?.isStudentPlan == true } }
-            .getOrNull(position - 1 - filterIndexed { i, item -> i < position && !item.isStudentPlan }.size)
+        val lessonAdditionalOffset = filterIndexed { i, item ->
+            i < position && item is Item.Additional
+        }.size
+        val lessonStudentPlanOffset = filterIndexed { i, item ->
+            i < position && !item.isStudentPlan
+        }.size
+        val lessonIndex = position - 1 - lessonAdditionalOffset - lessonStudentPlanOffset
+
+        return filterIsInstance<Item.Lesson>()
+            .filter { it.isStudentPlan }
+            .getOrNull(lessonIndex)
             ?.let {
-                if (!it.canceled && it.isStudentPlan) it.end
+                if (!it.lesson.canceled && it.isStudentPlan) it.lesson.end
                 else null
             }
     }
